@@ -4,8 +4,8 @@
 /// Used across database initialization, import, and retranscription.
 
 /// Default Whisper model for transcription when no preference is configured.
-/// This is the recommended balance of accuracy and speed.
-pub const DEFAULT_WHISPER_MODEL: &str = "large-v3-turbo";
+/// This is the Taiwanese Mandarin focused GGML model used by localWhisper.
+pub const DEFAULT_WHISPER_MODEL: &str = "breeze-asr-26";
 
 /// Default Parakeet model for transcription when no preference is configured.
 /// This is the quantized version optimized for speed.
@@ -23,6 +23,7 @@ pub const WHISPER_MODEL_CATALOG: &[(&str, &str, u32, &str, &str, &str)] = &[
     ("medium", "ggml-medium.bin", 1463, "High", "Slow", "High accuracy for professional use"),
     ("large-v3-turbo", "ggml-large-v3-turbo.bin", 1549, "High", "Medium", "Best accuracy with improved speed"),
     ("large-v3", "ggml-large-v3.bin", 2951, "High", "Slow", "Most Accurate, latest large model"),
+    ("breeze-asr-26", "ggml-breeze-asr-26.bin", 2951, "High", "Slow", "Taiwan-focused Breeze ASR 26 model for localWhisper"),
 
     // Q5_1 quantized models (balanced speed/accuracy, slightly better quality than Q5_0)
     ("tiny-q5_1", "ggml-tiny-q5_1.bin", 31, "Decent", "Very Fast", "Quantized tiny model, ~50% faster processing"),

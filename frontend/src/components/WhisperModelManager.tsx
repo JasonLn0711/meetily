@@ -380,10 +380,11 @@ export function ModelManager({
       "large-v3-q5_0": "Large V3 Compressed",
       "large-v3-turbo": "Large V3 Turbo",
       "large-v3": "Large V3",
+      "breeze-asr-26": "Breeze ASR 26",
       "breeze-asr-25": "Breeze ASR 25"
     };
 
-    const basicModelNames = ["small", "medium-q5_0", "large-v3-q5_0", "large-v3-turbo", "large-v3"];
+    const basicModelNames = ["breeze-asr-26", "small", "medium-q5_0", "large-v3-q5_0", "large-v3-turbo", "large-v3"];
     if (basicModelNames.includes(modelName)) {
       return modelNameMapping[modelName] || modelName;
     }
@@ -411,7 +412,7 @@ export function ModelManager({
     );
   }
 
-  const basicModelNames = ["small", "medium-q5_0", "large-v3-q5_0", "large-v3-turbo", "large-v3"];
+  const basicModelNames = ["breeze-asr-26", "small", "medium-q5_0", "large-v3-q5_0", "large-v3-turbo", "large-v3"];
   const basicModels = models.filter(m => basicModelNames.includes(m.name))
     .sort((a, b) => basicModelNames.indexOf(a.name) - basicModelNames.indexOf(b.name));
   const advancedModels = models.filter(m => !basicModelNames.includes(m.name));

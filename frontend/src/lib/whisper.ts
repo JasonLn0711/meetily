@@ -63,6 +63,12 @@ export const MODEL_CONFIGS: Record<string, Partial<ModelInfo>> = {
     accuracy: 'High',
     speed: 'Medium'
   },
+  'breeze-asr-26': {
+    description: 'Taiwan-focused Breeze ASR 26 model for localWhisper.',
+    size_mb: 2951,
+    accuracy: 'High',
+    speed: 'Slow'
+  },
   'medium': {
     description: 'Balanced accuracy and speed. Good for most use cases.',
     size_mb: 1463,
@@ -215,6 +221,8 @@ export function getModelTagline(modelName: string, speed: ProcessingSpeed, accur
   let featureText = '';
   if (baseName === 'large-v3') {
     featureText = 'Most accurate';
+  } else if (baseName === 'breeze-asr-26') {
+    featureText = 'Taiwan-focused ASR';
   } else if (baseName === 'large-v3-turbo') {
     featureText = 'Best accuracy with speed';
   } else if (baseName === 'medium') {

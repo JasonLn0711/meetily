@@ -5,9 +5,9 @@
 
 /**
  * Default Whisper model for transcription when no preference is configured.
- * This is the recommended balance of accuracy and speed.
+ * This is the Taiwan-focused Breeze ASR model used by localWhisper.
  */
-export const DEFAULT_WHISPER_MODEL = 'large-v3-turbo';
+export const DEFAULT_WHISPER_MODEL = 'breeze-asr-26';
 
 /**
  * Default Parakeet model for transcription when no preference is configured.

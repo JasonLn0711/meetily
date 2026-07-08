@@ -1085,6 +1085,7 @@ impl WhisperEngine {
             "medium" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
             "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
             "large-v3" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
+            "breeze-asr-26" => "https://huggingface.co/doggy8088/ggml-breeze-asr-26/resolve/main/ggml-breeze-asr-26.bin",
 
             // Q5_1 quantized models
             "tiny-q5_1" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin",
