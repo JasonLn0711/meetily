@@ -267,6 +267,23 @@ Status:
 - This is the root-cause fix for the repeated `app/layout.js` chunk timeout.
 - It is separate from ASR model runtime quality; Breeze ASR 26 still needs a real recording/transcription check before release-facing ASR quality claims.
 
+## Log And Audit Events
+
+| Event ID | Date | Symptom | Classification | Root cause | Fix / decision | Evidence | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MEETILY-AUDIT-2026-07-08-001 | 2026-07-08 | Tauri window showed a Next.js overlay: `ChunkLoadError: Loading chunk app/layout failed`; sidebar could appear but buttons were not operable. | Same repeated issue family: Next.js chunk timeout causing incomplete React hydration. | Initial app shell pulled too much client-side UI into startup chunks; Tauri WebView in dev mode timed out while loading `app/layout.js`. | Added dynamic imports for heavy layout/page components, removed the homepage root opacity animation, and relaxed dev-only CSP with `devCsp: null`. | `cargo check --manifest-path frontend/src-tauri/Cargo.toml`; `layout.js` / `page.js` returned HTTP `200`; Tauri log no longer showed new chunk/CSP refusal in that run. | Superseded by MEETILY-AUDIT-2026-07-09-001 because `layout.tsx` still remained a client root and the chunk was still large. |
+| MEETILY-AUDIT-2026-07-08-002 | 2026-07-08 | Breeze ASR 25 existed locally but could not be safely selected through `localWhisper`. | Separate issue: model-runtime format mismatch, not the UI hydration failure. | Local Breeze ASR 25 artifact was CTranslate2 / faster-whisper format; `localWhisper` uses whisper-rs / whisper.cpp and expects GGML/GGUF/ggmf. | Kept CT2 Breeze ASR 25 blocked from `localWhisper`; added UI compatibility status so it would not be mistaken for a ready whisper-rs model. | Header inspection showed non-GGML/GGUF bytes; model manager reports `Needs GGML/GGUF`. | Preserved as guardrail. |
+| MEETILY-AUDIT-2026-07-08-003 | 2026-07-08 | User requested a Taiwan Mandarin main ASR model through local Whisper. | ASR default activation. | Breeze ASR 26 has a published GGML artifact compatible with localWhisper, while no int8 GGML artifact was available in the checked repository. | Set `localWhisper / breeze-asr-26` as the main ASR model, registered its download URL, downloaded `ggml-breeze-asr-26.bin`, and updated local SQLite `transcript_settings`. | File exists at `~/.local/share/com.meetily.ai/models/ggml-breeze-asr-26.bin`, size `3,094,623,708` bytes; SQLite setting is `localWhisper / breeze-asr-26`; Rust check passes. | Active. Real transcription quality gate still pending. |
+| MEETILY-AUDIT-2026-07-09-001 | 2026-07-09 | Same visible UI problem returned: sidebar / blank main area / buttons not usable; screenshot matched prior `ChunkLoadError` behavior. | Same repeated issue family as MEETILY-AUDIT-2026-07-08-001. | Root `frontend/src/app/layout.tsx` was still a client component importing providers, Tauri hooks, toast, import dialog logic, sidebar, main content, and onboarding flow. That kept `app/layout.js` about `2.8 MB`, so Tauri WebView could still hit chunk timeout. | Converted `layout.tsx` back to a server root layout, moved the client provider shell into `AppShell.tsx`, and added thin `ClientAppShell.tsx` dynamic loader with `ssr: false`. | `app/layout.js` reduced to `186,593` bytes; `http://localhost:3118/` returns HTTP `200`; Tauri log confirms `provider=localWhisper, model=breeze-asr-26`; `target/debug/meetily` running. | Root-cause fix for the repeated non-operable UI / `app/layout.js` timeout. |
+| MEETILY-AUDIT-2026-07-09-002 | 2026-07-09 | `pnpm exec tsc --noEmit` fails. | Existing test-config issue, not caused by the hydration or ASR changes. | `tests/lib/blocknote-markdown.test.ts` imports `bun:test`, but TypeScript cannot resolve its type declarations in the current check setup. | Left unchanged; documented as a separate blocker before requiring full repo-wide typecheck pass. | Repeated output: `Cannot find module 'bun:test' or its corresponding type declarations.` | Open. |
+
+Audit conclusion:
+
+- The repeated screenshot problem is the same issue family: `app/layout.js` chunk timeout prevents React hydration, so the visible UI has no handlers.
+- The 2026-07-08 dynamic-import work reduced some pressure but did not fully remove the root cause because `layout.tsx` itself stayed client-side.
+- The 2026-07-09 root-layout split is the direct root-cause fix: keep root `layout.tsx` server-side and keep heavy providers / Tauri event logic out of the root layout chunk.
+- ASR model work is separate: Breeze ASR 26 is active as the localWhisper default, but recording quality still requires a real transcription run.
+
 ## First Launch Cost And Faster Next Launches
 
 confirmed first-launch costs:
