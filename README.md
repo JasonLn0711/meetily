@@ -44,6 +44,31 @@ A privacy-first AI meeting assistant that captures, transcribes, and summarizes 
 
 ---
 
+## Fork, Attribution, and Adaptation Notice
+
+This repository is an adapted fork of the original Meetily project by Zackriya
+Solutions:
+
+- Original upstream repository: <https://github.com/Zackriya-Solutions/meetily>
+- Adapted fork repository: <https://github.com/JasonLn0711/meetily>
+- Adapted and maintained by: JasonLn0711 and contributors to this fork
+
+The original copyright, authorship, license notices, project identity, and
+upstream rights remain with their respective owners. This fork preserves the
+original MIT License notice in [LICENSE.md](LICENSE.md) and keeps attribution to
+the upstream project. Changes made in this fork are maintained as adaptation
+work by the fork maintainers and are distributed under the same license unless a
+file or contribution states otherwise.
+
+This fork is maintained as an independent adaptation workspace for local-first
+desktop AI meeting-assistant development, including Tauri / Next.js runtime
+stability work, local ASR model compatibility gates, and related engineering
+documentation. Upstream releases, trademarks, product services, and official
+project communications remain governed by Zackriya Solutions and the original
+Meetily project.
+
+---
+
 > **Meetily PRO Upgrade Offer** - Meetily PRO is available for users who need enhanced accuracy, advanced exports, custom summary workflows, and team-ready features. Use coupon code **LAUNCH20** for **20% off** until the next Meetily Community Edition release. Speaker diarization is also planned for PRO in mid-June. [Explore Meetily PRO →](https://meetily.ai/pro/)
 
 ---
