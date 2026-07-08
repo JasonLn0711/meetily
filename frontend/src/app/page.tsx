@@ -1,26 +1,37 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { RecordingControls } from '@/components/RecordingControls';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
 import { usePermissionCheck } from '@/hooks/usePermissionCheck';
 import { useRecordingState, RecordingStatus } from '@/contexts/RecordingStateContext';
 import { useTranscripts } from '@/contexts/TranscriptContext';
 import { useConfig } from '@/contexts/ConfigContext';
-import { StatusOverlays } from '@/app/_components/StatusOverlays';
 import Analytics from '@/lib/analytics';
-import { SettingsModals } from './_components/SettingsModal';
-import { TranscriptPanel } from './_components/TranscriptPanel';
 import { useModalState } from '@/hooks/useModalState';
 import { useRecordingStateSync } from '@/hooks/useRecordingStateSync';
 import { useRecordingStart } from '@/hooks/useRecordingStart';
 import { useRecordingStop } from '@/hooks/useRecordingStop';
 import { useTranscriptRecovery } from '@/hooks/useTranscriptRecovery';
-import { TranscriptRecovery } from '@/components/TranscriptRecovery';
 import { indexedDBService } from '@/services/indexedDBService';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const RecordingControls = dynamic<any>(
+  () => import('@/components/RecordingControls').then((mod) => mod.RecordingControls)
+);
+const StatusOverlays = dynamic<any>(
+  () => import('@/app/_components/StatusOverlays').then((mod) => mod.StatusOverlays)
+);
+const SettingsModals = dynamic<any>(
+  () => import('./_components/SettingsModal').then((mod) => mod.SettingsModals)
+);
+const TranscriptPanel = dynamic<any>(
+  () => import('./_components/TranscriptPanel').then((mod) => mod.TranscriptPanel)
+);
+const TranscriptRecovery = dynamic<any>(
+  () => import('@/components/TranscriptRecovery').then((mod) => mod.TranscriptRecovery)
+);
 
 export default function Home() {
   // Local page state (not moved to contexts)
@@ -190,12 +201,7 @@ export default function Home() {
   const isProcessingStop = status === RecordingStatus.PROCESSING_TRANSCRIPTS || isProcessing;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-col h-screen bg-gray-50"
-    >
+    <div className="flex flex-col h-screen bg-gray-50">
       {/* All Modals supported*/}
       <SettingsModals
         modals={modals}
@@ -239,7 +245,7 @@ export default function Home() {
                       onTranscriptReceived={() => { }} // Not actually used by RecordingControls
                       onStopInitiated={() => setIsStopping(true)}
                       barHeights={barHeights}
-                      onTranscriptionError={(message) => {
+                      onTranscriptionError={(message: string) => {
                         showModal('errorAlert', message);
                       }}
                       isRecordingDisabled={isRecordingDisabled}
@@ -260,6 +266,6 @@ export default function Home() {
           sidebarCollapsed={sidebarCollapsed}
         />
       </div>
-    </motion.div>
+    </div>
   );
 }

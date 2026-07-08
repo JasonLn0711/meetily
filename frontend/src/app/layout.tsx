@@ -2,30 +2,38 @@
 
 import './globals.css'
 import { Source_Sans_3 } from 'next/font/google'
-import Sidebar from '@/components/Sidebar'
 import { SidebarProvider } from '@/components/Sidebar/SidebarProvider'
-import MainContent from '@/components/MainContent'
 import AnalyticsProvider from '@/components/AnalyticsProvider'
 import { Toaster, toast } from 'sonner'
 import "sonner/dist/styles.css"
 import { useState, useEffect, useCallback } from 'react'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import dynamic from 'next/dynamic'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { RecordingStateProvider } from '@/contexts/RecordingStateContext'
 import { OllamaDownloadProvider } from '@/contexts/OllamaDownloadContext'
 import { TranscriptProvider } from '@/contexts/TranscriptContext'
 import { ConfigProvider, useConfig } from '@/contexts/ConfigContext'
 import { OnboardingProvider } from '@/contexts/OnboardingContext'
-import { OnboardingFlow } from '@/components/onboarding'
 import { loadBetaFeatures } from '@/types/betaFeatures'
 import { DownloadProgressToastProvider } from '@/components/shared/DownloadProgressToast'
 import { UpdateCheckProvider } from '@/components/UpdateCheckProvider'
 import { RecordingPostProcessingProvider } from '@/contexts/RecordingPostProcessingProvider'
-import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 
+const Sidebar = dynamic(() => import('@/components/Sidebar'))
+const MainContent = dynamic(() => import('@/components/MainContent'))
+const OnboardingFlow = dynamic<any>(
+  () => import('@/components/onboarding').then((mod) => mod.OnboardingFlow)
+)
+const ImportAudioDialog = dynamic<any>(
+  () => import('@/components/ImportAudio').then((mod) => mod.ImportAudioDialog)
+)
+const ImportDropOverlay = dynamic<any>(
+  () => import('@/components/ImportAudio').then((mod) => mod.ImportDropOverlay)
+)
 
 const sourceSans3 = Source_Sans_3({
   subsets: ['latin'],

@@ -379,7 +379,8 @@ export function ModelManager({
       "medium-q5_0": "Medium",
       "large-v3-q5_0": "Large V3 Compressed",
       "large-v3-turbo": "Large V3 Turbo",
-      "large-v3": "Large V3"
+      "large-v3": "Large V3",
+      "breeze-asr-25": "Breeze ASR 25"
     };
 
     const basicModelNames = ["small", "medium-q5_0", "large-v3-q5_0", "large-v3-turbo", "large-v3"];
@@ -518,6 +519,11 @@ function ModelCard({
   const isAvailable = model.status === 'Available';
   const isMissing = model.status === 'Missing';
   const isError = typeof model.status === 'object' && 'Error' in model.status;
+  const errorMessage =
+    typeof model.status === 'object' && 'Error' in model.status
+      ? model.status.Error
+      : null;
+  const isCompatibilityError = model.name === 'breeze-asr-25';
   const isCorrupted = typeof model.status === 'object' && 'Corrupted' in model.status;
   const downloadProgress =
     typeof model.status === 'object' && 'Downloading' in model.status
@@ -642,7 +648,7 @@ function ModelCard({
               </button>
             )}
 
-            {downloadProgress === null && isError && (
+            {downloadProgress === null && isError && !isCompatibilityError && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -652,6 +658,12 @@ function ModelCard({
               >
                 Retry
               </button>
+            )}
+
+            {downloadProgress === null && isError && isCompatibilityError && (
+              <div className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
+                Needs GGML/GGUF
+              </div>
             )}
 
             {isCorrupted && (
@@ -721,6 +733,12 @@ function ModelCard({
               )}
             </p>
           </motion.div>
+        )}
+
+        {downloadProgress === null && errorMessage && (
+          <p className="mt-3 ml-9 text-xs text-amber-700">
+            {errorMessage}
+          </p>
         )}
       </div>
     </motion.div>

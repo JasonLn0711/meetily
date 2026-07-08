@@ -1,8 +1,8 @@
-use crate::whisper_engine::{ModelInfo, WhisperEngine};
-use std::sync::{Arc, Mutex};
-use std::path::PathBuf;
-use tauri::{command, Emitter, Manager, AppHandle, Runtime};
 use crate::config::WHISPER_MODEL_CATALOG;
+use crate::whisper_engine::{ModelInfo, WhisperEngine};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use tauri::{command, AppHandle, Emitter, Manager, Runtime};
 
 // Global whisper engine
 pub static WHISPER_ENGINE: Mutex<Option<Arc<WhisperEngine>>> = Mutex::new(None);
@@ -10,10 +10,43 @@ pub static WHISPER_ENGINE: Mutex<Option<Arc<WhisperEngine>>> = Mutex::new(None);
 // Global models directory path (set during app initialization)
 static MODELS_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
 
+const BREEZE_ASR_25_CT2_MODEL_PATHS: &[&str] = &[
+    "/home/jnclaw/every_on_git_jnclaw/phd-life-system/jarvis-voice-sight/models/breeze-asr-25-ct2/model.bin",
+];
+
+fn breeze_asr_25_ct2_model() -> Option<ModelInfo> {
+    use crate::whisper_engine::ModelStatus;
+
+    BREEZE_ASR_25_CT2_MODEL_PATHS.iter().find_map(|path| {
+        let model_path = PathBuf::from(path);
+        if !model_path.exists() {
+            return None;
+        }
+
+        let size_mb = std::fs::metadata(&model_path)
+            .map(|metadata| (metadata.len() / (1024 * 1024)) as u32)
+            .unwrap_or(0);
+
+        Some(ModelInfo {
+            name: "breeze-asr-25".to_string(),
+            path: model_path,
+            size_mb,
+            status: ModelStatus::Error(
+                "Found local Breeze ASR 25 in CTranslate2/faster-whisper format. whisper-rs requires a GGML/GGUF/ggmf model file before this can be selected.".to_string()
+            ),
+            accuracy: "High".to_string(),
+            speed: "Medium".to_string(),
+            description: "Local Breeze ASR 25 detected; provide a whisper-rs compatible GGML/GGUF conversion to activate it.".to_string(),
+        })
+    })
+}
+
 /// Initialize the models directory path using app_data_dir
 /// This should be called during app setup before whisper_init
 pub fn set_models_directory<R: Runtime>(app: &AppHandle<R>) {
-    let app_data_dir = app.path().app_data_dir()
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
         .expect("Failed to get app data dir");
 
     let models_dir = app_data_dir.join("models");
@@ -75,8 +108,8 @@ pub async fn whisper_get_available_models() -> Result<Vec<ModelInfo>, String> {
 fn discover_models_standalone() -> Result<Vec<ModelInfo>, String> {
     use crate::whisper_engine::ModelStatus;
 
-    let models_dir = get_models_directory()
-        .ok_or_else(|| "Models directory not initialized".to_string())?;
+    let models_dir =
+        get_models_directory().ok_or_else(|| "Models directory not initialized".to_string())?;
 
     // Whisper models are stored directly in the models directory (not in a whisper subdirectory)
     let whisper_dir = models_dir.clone();
@@ -117,7 +150,14 @@ fn discover_models_standalone() -> Result<Vec<ModelInfo>, String> {
         });
     }
 
-    let downloaded_count = models.iter().filter(|m| matches!(m.status, ModelStatus::Available)).count();
+    if let Some(model) = breeze_asr_25_ct2_model() {
+        models.push(model);
+    }
+
+    let downloaded_count = models
+        .iter()
+        .filter(|m| matches!(m.status, ModelStatus::Available))
+        .count();
     log::info!("Found {} downloaded Whisper models", downloaded_count);
 
     Ok(models)
@@ -126,7 +166,7 @@ fn discover_models_standalone() -> Result<Vec<ModelInfo>, String> {
 #[command]
 pub async fn whisper_load_model(
     app_handle: tauri::AppHandle,
-    model_name: String
+    model_name: String,
 ) -> Result<(), String> {
     let engine = {
         let guard = WHISPER_ENGINE.lock().unwrap();
@@ -521,8 +561,8 @@ pub async fn whisper_delete_corrupted_model(model_name: String) -> Result<String
 /// Open the models folder in the system file explorer
 #[command]
 pub async fn open_models_folder() -> Result<(), String> {
-    let models_dir = get_models_directory()
-        .ok_or_else(|| "Models directory not initialized".to_string())?;
+    let models_dir =
+        get_models_directory().ok_or_else(|| "Models directory not initialized".to_string())?;
 
     // Ensure directory exists before trying to open it
     if !models_dir.exists() {
