@@ -39,3 +39,7 @@ graph TD
 *   **Transcription Engine:** Uses local speech-to-text models (Whisper or Parakeet) to transcribe the captured audio. It can be accelerated with a GPU.
 *   **Database:** A local SQLite database that stores meeting metadata, transcripts, and summaries.
 *   **Summary Engine:** Generates meeting summaries using various Large Language Models (LLMs), including local models via Ollama.
+
+## Engineering Notes
+
+*   [2026-07-08 Tauri / Next.js hydration and Breeze ASR 25 record](engineering-notes/2026-07-08-tauri-next-hydration-breeze-asr.md): documents a dev startup triage where SSR rendered but hydration was blocked by chunk loading/CSP risk, and records the Breeze ASR 25 CT2 vs whisper-rs GGML/GGUF compatibility boundary.

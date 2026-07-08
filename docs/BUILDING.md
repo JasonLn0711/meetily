@@ -234,6 +234,10 @@ src-tauri/target/release/bundle/appimage/Meetily_<version>_amd64.AppImage
 
 ### 🧭 Troubleshooting
 
+#### Tauri window renders but buttons do not respond
+
+- See [2026-07-08 Tauri / Next.js hydration and Breeze ASR 25 record](engineering-notes/2026-07-08-tauri-next-hydration-breeze-asr.md) for the current debug path: check Next.js chunks, dev CSP, hydration, Tauri native API calls, and first-launch model cache behavior.
+
 #### "CUDA toolkit not found"
 
 - **Fix:** Install `nvidia-cuda-toolkit` or set `CUDA_PATH` environment variable
