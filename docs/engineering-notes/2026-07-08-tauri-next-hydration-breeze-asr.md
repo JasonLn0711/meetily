@@ -203,7 +203,7 @@ curl http://localhost:3118/_next/static/chunks/app/layout.js
 curl http://localhost:3118/_next/static/chunks/app/page.js
 ```
 
-觀察結果：
+2026-07-08 observation, later superseded by the 2026-07-09 root-layout split:
 
 - `layout.js`: HTTP 200，約 2.79 MB，毫秒級取回。
 - `page.js`: HTTP 200，約 1.19 MB，毫秒級取回。
@@ -222,6 +222,50 @@ tests/lib/blocknote-markdown.test.ts: Cannot find module 'bun:test'
 ```
 
 這不是本次改動新增的錯誤，但 commit 前若要整體 typecheck 通過，需要補測試環境型別或調整 tsconfig/test config。
+
+## 2026-07-09 Root Layout Chunk Fix
+
+使用者回報同一類畫面再次出現：
+
+```text
+ChunkLoadError: Loading chunk app/layout failed.
+timeout: http://localhost:3118/_next/static/chunks/app/layout.js
+```
+
+Root cause:
+
+- `frontend/src/app/layout.tsx` was still a client component.
+- It imported the app provider stack, Tauri event hooks, toast setup, import dialog logic, sidebar, main content, and onboarding flow from the root layout path.
+- That made `app/layout.js` a large dev chunk, about `2.8 MB`, which Tauri WebView could time out while loading.
+- When that chunk timed out, HTML/SSR still made the sidebar visible, but React hydration did not finish. The visible UI then had no working event handlers.
+
+Fix:
+
+- `frontend/src/app/layout.tsx` is now a server root layout again.
+- The previous client-side shell moved to `frontend/src/app/AppShell.tsx`.
+- `frontend/src/app/ClientAppShell.tsx` is a thin client loader that dynamically imports `AppShell` with `ssr: false`.
+
+Validation:
+
+```bash
+curl -sS -D - --max-time 10 http://localhost:3118/_next/static/chunks/app/layout.js -o /tmp/meetily-layout-final.js
+wc -c /tmp/meetily-layout-final.js
+curl -sS -I --max-time 5 http://localhost:3118/
+pnpm exec tsc --noEmit
+```
+
+Results:
+
+- `app/layout.js`: reduced from about `2.8 MB` to `186,593` bytes.
+- `http://localhost:3118/`: HTTP `200`.
+- `pnpm run tauri:dev`: restarted successfully; `target/debug/meetily` running.
+- Tauri log confirms `provider=localWhisper, model=breeze-asr-26`.
+- `pnpm exec tsc --noEmit` still fails only on the existing `tests/lib/blocknote-markdown.test.ts` import of `bun:test`.
+
+Status:
+
+- This is the root-cause fix for the repeated `app/layout.js` chunk timeout.
+- It is separate from ASR model runtime quality; Breeze ASR 26 still needs a real recording/transcription check before release-facing ASR quality claims.
 
 ## First Launch Cost And Faster Next Launches
 
@@ -338,12 +382,13 @@ Before commit:
 | A5 | Keep push target on fork remote | next agent | Before publish | remote points to `https://github.com/JasonLn0711/meetily.git` or equivalent fork remote |
 | A6 | Do not set CT2 Breeze ASR 25 as `localWhisper` main model | next agent | Until compatible artifact/provider exists | GGML/GGUF artifact or CTranslate2 provider implementation with a real transcription |
 | A7 | Keep Breeze ASR 26 local model cache available between launches | next agent | Before diagnosing slow first launch again | `~/.local/share/com.meetily.ai/models/ggml-breeze-asr-26.bin` exists and matches expected size |
+| A8 | Keep root `layout.tsx` server-side and avoid reintroducing heavy provider imports there | next agent | Any future shell/provider edit | `app/layout.js` remains small enough for Tauri WebView dev loading |
 
 ## Current Status
 
 - source preserved: yes, this note records the user-visible errors, model-format finding, changed files, and validation evidence.
-- adopted decision: Next/Tauri dev hydration fix, Breeze CT2 compatibility gate, and Breeze ASR 26 localWhisper default are adopted in current working tree.
-- validated: Rust check passes; chunks return quickly; log no longer shows chunk/CSP failure; Breeze ASR 26 file exists with expected size.
-- startup status: `pnpm run tauri:dev` rebuilds with CUDA and reaches `target/debug/meetily`, then exits at the Linux single-instance DBus layer.
+- adopted decision: Next/Tauri dev hydration fix, Breeze CT2 compatibility gate, Breeze ASR 26 localWhisper default, and the 2026-07-09 root-layout chunk split are adopted in current working tree.
+- validated: Rust check passes; `app/layout.js` reduced to `186,593` bytes; app route returns HTTP `200`; Breeze ASR 26 file exists with expected size.
+- startup status: `pnpm run tauri:dev` rebuilds with CUDA and `target/debug/meetily` is running.
 - implementation pending: Breeze ASR 26 still needs one real transcription run before release-facing quality claims; CT2 Breeze ASR 25 remains intentionally blocked from `localWhisper`.
 - publication path: implementation, engineering documentation, and planning mirror are handled as separate publish units; push target is Jason's fork, not the upstream repository.
