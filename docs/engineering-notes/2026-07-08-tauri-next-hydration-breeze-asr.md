@@ -1,4 +1,4 @@
-# 2026-07-08 Tauri / Next.js 啟動與 Breeze ASR 25 工程紀錄
+# 2026-07-08 Tauri / Next.js 啟動與 Breeze ASR 25/26 工程紀錄
 
 ## FIRST PRINCIPLE
 
@@ -6,7 +6,7 @@
 - canonical_home: Meetily execution repo 的 `docs/engineering-notes/` 與實作檔案。
 - planning_role: planning repo 只保留 locator、status、validation evidence、fork-push boundary、next gate；本文件保留 repo 內工程脈絡、驗證證據、下一步。
 - evidence_path: Tauri dev log、HTTP chunk checks、Rust / TypeScript checks、實際 diff。
-- next_gate: keep Breeze ASR 25 blocked from `localWhisper` until a GGML/GGUF artifact exists, or add a separate CTranslate2/faster-whisper provider.
+- next_gate: keep CT2 Breeze ASR 25 blocked from `localWhisper`; use GGML Breeze ASR 26 as the main localWhisper model and validate real transcription performance before release claims.
 
 ## Source Context
 
@@ -130,6 +130,64 @@ Implementation note:
 - no model download was started;
 - the existing Breeze UI compatibility gate remains the correct product state.
 
+## 2026-07-08 Breeze ASR 26 Main Model Update
+
+使用者後續要求：
+
+```text
+好，請使用 ggml-breeze-asr-26 作為 main asr model（看看有沒有 int 8 版本，如果沒有，看看最穩版本）
+```
+
+Decision:
+
+- adopted: `localWhisper + breeze-asr-26` is now the main ASR model.
+- model source: `doggy8088/ggml-breeze-asr-26`.
+- quantization check: the Hugging Face repository currently exposes `ggml-breeze-asr-26.bin` and CoreML encoder files; no int8 GGML artifact was available in that repository at decision time.
+- stable choice: use the published GGML `.bin` artifact because it matches whisper-rs / whisper.cpp format expectations.
+- retained fallback family: Parakeet remains available as a selectable local ASR provider, but it is no longer the default main ASR model.
+
+Downloaded artifact:
+
+```text
+local file: /home/jnclaw/.local/share/com.meetily.ai/models/ggml-breeze-asr-26.bin
+size: 3094623708 bytes
+header bytes: b'lmgg\x99\xca\x00\x00\xdc\x05\x00\x00\x00\x05\x00\x00'
+runtime: localWhisper / whisper-rs
+```
+
+Implementation:
+
+- `frontend/src-tauri/src/config.rs`: `DEFAULT_WHISPER_MODEL` is `breeze-asr-26`; catalog includes `ggml-breeze-asr-26.bin`.
+- `frontend/src-tauri/src/whisper_engine/whisper_engine.rs`: download URL maps `breeze-asr-26` to the Hugging Face GGML artifact.
+- `frontend/src/constants/modelDefaults.ts`, `frontend/src/contexts/ConfigContext.tsx`, and `frontend/src/components/Sidebar/index.tsx`: frontend defaults point to `localWhisper / breeze-asr-26`.
+- `frontend/src-tauri/src/api/api.rs`, `frontend/src-tauri/src/database/commands.rs`, `frontend/src-tauri/src/audio/transcription/engine.rs`, and `frontend/src-tauri/src/onboarding.rs`: fresh or missing transcript settings default to `localWhisper / breeze-asr-26`.
+- local SQLite setting updated from `parakeet / parakeet-tdt-0.6b-v3-int8` to `localWhisper / breeze-asr-26`.
+
+Validation evidence:
+
+```bash
+cargo check --manifest-path frontend/src-tauri/Cargo.toml
+git diff --check
+```
+
+Results: Rust check passes with existing warnings; diff whitespace check passes.
+
+Dev restart evidence:
+
+```bash
+pnpm run tauri:dev
+```
+
+Result: Next.js dev server starts on `http://localhost:3118`; the Tauri binary compiles with CUDA enabled and then exits during the Linux single-instance DBus handoff (`org.com_meetily_ai.SingleInstance`). Treat this as a desktop startup layer issue, separate from the ASR default/model-cache change.
+
+Known remaining check:
+
+```bash
+pnpm exec tsc --noEmit
+```
+
+Result: still blocked by the existing `tests/lib/blocknote-markdown.test.ts` import of `bun:test`; this is not introduced by the Breeze ASR 26 change.
+
 ## Validation Evidence
 
 confirmed checks:
@@ -183,6 +241,12 @@ confirmed local cache:
 
 目前約 3.2 GB。保留 `.next/`、`target/`、models cache，下一次啟動會少掉大部分首次成本。
 
+After adopting Breeze ASR 26, the local model cache is about 6.1 GB and includes:
+
+- `ggml-breeze-asr-26.bin`: 3,094,623,708 bytes.
+- Parakeet model directory.
+- Summary model directory.
+
 ## Connection Map
 
 - `docs/architecture.md`: Meetily 的 Tauri / Next.js / Rust core 架構入口；本紀錄補充「SSR、hydration、Tauri command」在實務除錯中的關係。
@@ -191,6 +255,8 @@ confirmed local cache:
 - `frontend/README.md`: supported app run path；本紀錄確認目前正確路徑是 `frontend/` 下的 `pnpm run tauri:dev`。
 - `CLAUDE.md`: repo-local agent / architecture context；本紀錄沿用「Tauri desktop app 是 supported path，legacy backend 不作為當前執行路徑」。
 - `frontend/src-tauri/src/whisper_engine/whisper_engine.rs`: whisper-rs runtime、模型狀態、模型載入驗證的核心位置。
+- `frontend/src-tauri/src/config.rs`: localWhisper default model and ASR catalog.
+- `frontend/src/constants/modelDefaults.ts`: frontend default ASR model mapping.
 - `frontend/src-tauri/src/whisper_engine/commands.rs`: Tauri command 層與 standalone model discovery。
 - `frontend/src/components/WhisperModelManager.tsx`: 使用者看得到的模型狀態與可操作按鈕。
 - `frontend/src/app/layout.tsx` and `frontend/src/app/page.tsx`: Next.js App Router 初始載入與 hydration 風險面。
@@ -265,17 +331,19 @@ Before commit:
 
 | ID | Question / action | Owner | Due / trigger | Evidence needed |
 | --- | --- | --- | --- | --- |
-| A1 | Decide Breeze route: obtain GGML/GGUF compatible model for whisper-rs, or implement faster-whisper provider | Jason / next agent | Before claiming Breeze is usable in Meetily | Successful model load and one real transcription |
+| A1 | Validate Breeze ASR 26 runtime quality in Meetily with one real localWhisper transcription | Jason / next agent | Before release-facing ASR quality claim | Successful model load, real transcription, transcript output reviewed |
 | A2 | Keep Meetily code, docs, and planning mirror as separate commits | next agent | During publish | Implementation commit `a85d7ceea8e09eb9ed5796ef9d4f9f8053aab6d3`; separate documentation and planning commit hashes |
 | A3 | Fix `bun:test` TypeScript test config | next agent | Before requiring full `pnpm exec tsc --noEmit` pass | Typecheck passes or test files excluded through intended config |
 | A4 | Consider production build path for faster normal launch | Jason / next agent | After dev flow is stable | `pnpm run tauri:build` or selected release binary starts without dev compile |
 | A5 | Keep push target on fork remote | next agent | Before publish | remote points to `https://github.com/JasonLn0711/meetily.git` or equivalent fork remote |
 | A6 | Do not set CT2 Breeze ASR 25 as `localWhisper` main model | next agent | Until compatible artifact/provider exists | GGML/GGUF artifact or CTranslate2 provider implementation with a real transcription |
+| A7 | Keep Breeze ASR 26 local model cache available between launches | next agent | Before diagnosing slow first launch again | `~/.local/share/com.meetily.ai/models/ggml-breeze-asr-26.bin` exists and matches expected size |
 
 ## Current Status
 
 - source preserved: yes, this note records the user-visible errors, model-format finding, changed files, and validation evidence.
-- adopted decision: Next/Tauri dev hydration fix and Breeze CT2 compatibility gate are adopted in current working tree.
-- validated: Rust check passes; chunks return quickly; log no longer shows chunk/CSP failure.
-- implementation pending: Breeze ASR 25 is not yet a working whisper-rs model because the local artifact is CT2 format; `localWhisper + breeze-asr-25` remains intentionally blocked.
+- adopted decision: Next/Tauri dev hydration fix, Breeze CT2 compatibility gate, and Breeze ASR 26 localWhisper default are adopted in current working tree.
+- validated: Rust check passes; chunks return quickly; log no longer shows chunk/CSP failure; Breeze ASR 26 file exists with expected size.
+- startup status: `pnpm run tauri:dev` rebuilds with CUDA and reaches `target/debug/meetily`, then exits at the Linux single-instance DBus layer.
+- implementation pending: Breeze ASR 26 still needs one real transcription run before release-facing quality claims; CT2 Breeze ASR 25 remains intentionally blocked from `localWhisper`.
 - publication path: implementation, engineering documentation, and planning mirror are handled as separate publish units; push target is Jason's fork, not the upstream repository.

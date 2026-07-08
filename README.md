@@ -160,7 +160,7 @@ pnpm install
 
 ### 🎯 Local Transcription
 
-Transcribe meetings entirely on your device using **Whisper** or **Parakeet** models. No cloud required.
+Transcribe meetings entirely on your device using **Whisper** or **Parakeet** models. No cloud required. This fork currently defaults to **Breeze ASR 26** through the local Whisper runtime for Taiwan-focused Mandarin transcription.
 
 <p align="center">
     <img src="docs/home.png" width="650" style="border-radius: 10px;" alt="Meetily Demo" />
