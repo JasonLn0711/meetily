@@ -6,7 +6,7 @@
 - canonical_home: Meetily execution repo 的 `docs/engineering-notes/` 與實作檔案。
 - planning_role: planning repo 只保留 locator、status、validation evidence、fork-push boundary、next gate；本文件保留 repo 內工程脈絡、驗證證據、下一步。
 - evidence_path: Tauri dev log、HTTP chunk checks、Rust / TypeScript checks、實際 diff。
-- next_gate: publish separate code/docs/planning commits, then decide Breeze ASR 25 要走 GGML/GGUF whisper-rs 路線或 faster-whisper 路線。
+- next_gate: keep Breeze ASR 25 blocked from `localWhisper` until a GGML/GGUF artifact exists, or add a separate CTranslate2/faster-whisper provider.
 
 ## Source Context
 
@@ -92,6 +92,43 @@ Next.js SSR 可以先產生 HTML，所以側欄或部分畫面會出現。可是
 ### 模型格式比檔名更重要
 
 `breeze-asr-25-ct2/model.bin` 存在不代表 whisper-rs 可以載入。whisper-rs 綁定 whisper.cpp，期待 GGML/GGUF/ggmf 類型模型。CTranslate2/faster-whisper model 需要不同 runtime。
+
+## 2026-07-08 Breeze via localWhisper Decision
+
+使用者後續要求：
+
+```text
+請將 main model 改為 breeze-asr-25 via localWhisper，無須使用 faster-whisper
+```
+
+Decision:
+
+- not adopted: `localWhisper + breeze-asr-25` is not set as the main ASR model.
+- reason: the local Breeze artifact is CTranslate2 / faster-whisper format, not GGML/GGUF/ggmf.
+- safety boundary: pointing the main model at this artifact would make recording validation fail before transcription.
+- retained working default: `parakeet-tdt-0.6b-v3-int8` remains the active local ASR model until a compatible replacement is available.
+
+Evidence:
+
+```text
+local file: /home/jnclaw/every_on_git_jnclaw/phd-life-system/jarvis-voice-sight/models/breeze-asr-25-ct2/model.bin
+exists: yes
+size: 1551140573 bytes
+header bytes: b'\x06\x00\x00\x00\x0c\x00WhisperSpe'
+expected by localWhisper: GGML / GGUF / ggmf magic
+```
+
+Compatible activation paths:
+
+1. Provide a GGML/GGUF Breeze ASR 25 artifact and register it in the existing `localWhisper` catalog.
+2. Add a separate CTranslate2/faster-whisper provider and route the existing CT2 Breeze artifact through that provider.
+3. Keep using the current Parakeet model while evaluating the above paths.
+
+Implementation note:
+
+- no code default was changed in this step;
+- no model download was started;
+- the existing Breeze UI compatibility gate remains the correct product state.
 
 ## Validation Evidence
 
@@ -233,11 +270,12 @@ Before commit:
 | A3 | Fix `bun:test` TypeScript test config | next agent | Before requiring full `pnpm exec tsc --noEmit` pass | Typecheck passes or test files excluded through intended config |
 | A4 | Consider production build path for faster normal launch | Jason / next agent | After dev flow is stable | `pnpm run tauri:build` or selected release binary starts without dev compile |
 | A5 | Keep push target on fork remote | next agent | Before publish | remote points to `https://github.com/JasonLn0711/meetily.git` or equivalent fork remote |
+| A6 | Do not set CT2 Breeze ASR 25 as `localWhisper` main model | next agent | Until compatible artifact/provider exists | GGML/GGUF artifact or CTranslate2 provider implementation with a real transcription |
 
 ## Current Status
 
 - source preserved: yes, this note records the user-visible errors, model-format finding, changed files, and validation evidence.
 - adopted decision: Next/Tauri dev hydration fix and Breeze CT2 compatibility gate are adopted in current working tree.
 - validated: Rust check passes; chunks return quickly; log no longer shows chunk/CSP failure.
-- implementation pending: Breeze ASR 25 is not yet a working whisper-rs model because the local artifact is CT2 format.
+- implementation pending: Breeze ASR 25 is not yet a working whisper-rs model because the local artifact is CT2 format; `localWhisper + breeze-asr-25` remains intentionally blocked.
 - publication path: implementation, engineering documentation, and planning mirror are handled as separate publish units; push target is Jason's fork, not the upstream repository.
