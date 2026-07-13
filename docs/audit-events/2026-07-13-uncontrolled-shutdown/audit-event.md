@@ -162,3 +162,13 @@ Whisper/CUDA、resampler 或其他 FFI 也可能先寫壞 heap，之後由 ALSA 
 - 本 audit 完成來源保存、程式路徑分析與修復優先序。
 - 本次未變更 production code，也未宣稱已重現或已修復。
 - 事件的 direct termination cause 已由 log 證實；第一個造成 heap 損壞的 native instruction 仍由 core/sanitizer validation layer 確認。
+
+## 2026-07-14 follow-up／scope change
+
+後續 remediation、validation 與 publication 已記錄於 [`AUDIT-2026-07-14-MEETILY-AUDIO-GPU-HARDENING-002`](../2026-07-14-audio-owner-gpu-asr-hardening/audit-event.md)。
+
+- `confirmed`：Linux device enumeration 已收斂，stable polling interval 已實際切換為 5 秒。
+- `confirmed`：`cpal::Stream` lifecycle 已移至 dedicated owner thread，四層 `unsafe impl Send` 已移除，CPAL 已升至 0.18.1。
+- `validated`：25 次真實 default-microphone start／callback／stop／drop lifecycle 通過。
+- `pending confirmation`：長時間 microphone + system audio、hot-plug、default-device change、受控 shutdown markers 與 artifact integrity soak test。
+- 原始 direct cause 與 `source.log` 保持不變；若 allocator abort 再現，core／sanitizer evidence 將確認 first invalid native instruction。
