@@ -123,7 +123,8 @@ for /f "delims=" %%i in ('node scripts/auto-detect-gpu.js') do set TAURI_GPU_FEA
 if defined TAURI_GPU_FEATURE (
     echo ✅ Detected GPU feature: !TAURI_GPU_FEATURE!
 ) else (
-    echo ⚠️ No specific GPU feature detected or forced
+    echo ❌ Meetily ASR requires CUDA or Vulkan GPU acceleration
+    exit /b 1
 )
 
 REM Build llama-helper
@@ -232,7 +233,7 @@ echo   Meetily with optimal hardware acceleration features:
 echo.
 echo   - NVIDIA GPU    : Builds with CUDA acceleration
 echo   - AMD/Intel GPU : Builds with Vulkan acceleration
-echo   - No GPU        : Builds with OpenBLAS CPU optimization
+echo   - No GPU        : ASR activation remains gated
 echo.
 echo REQUIREMENTS:
 echo   - Visual Studio 2022 Build Tools

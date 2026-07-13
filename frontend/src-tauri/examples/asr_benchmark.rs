@@ -1,7 +1,7 @@
 //! Minimal live adapter for reference-backed ASR comparisons.
 
 use app_lib::audio::decoder::decode_audio_file;
-use app_lib::whisper_engine::WhisperEngine;
+use app_lib::whisper_engine::{WhisperCompiledBackend, WhisperEngine};
 use serde_json::json;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -43,6 +43,8 @@ async fn main() -> anyhow::Result<()> {
             "{}",
             json!({
                 "runtime": "meetily_whisper_rs",
+                "compiled_backend": WhisperCompiledBackend::current().as_str(),
+                "gpu_inference_required": true,
                 "model": model_name,
                 "model_path": model_path,
                 "audio_path": audio_path,

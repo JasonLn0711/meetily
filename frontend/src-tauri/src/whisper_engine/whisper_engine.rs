@@ -104,7 +104,9 @@ impl WhisperEngine {
                 true
             }
             WhisperCompiledBackend::Cpu => {
-                log::info!("No GPU acceleration features detected - using CPU processing");
+                log::warn!(
+                    "No GPU backend compiled - ASR remains gated until a GPU build is active"
+                );
                 false
             }
         }
@@ -170,9 +172,6 @@ impl WhisperEngine {
         #[cfg(feature = "metal")]
         log::info!("Apple Metal GPU support: enabled");
 
-        #[cfg(feature = "openblas")]
-        log::info!("OpenBLAS CPU optimization: enabled");
-
         #[cfg(feature = "coreml")]
         log::info!("Apple CoreML support: enabled");
 
@@ -181,9 +180,6 @@ impl WhisperEngine {
 
         #[cfg(feature = "vulkan")]
         log::info!("Vulkan GPU support: enabled");
-
-        #[cfg(feature = "openmp")]
-        log::info!("OpenMP parallel processing: enabled");
 
         let engine = Self {
             models_dir,
@@ -335,7 +331,8 @@ impl WhisperEngine {
                     WhisperCompiledBackend::current(),
                     hardware_profile.gpu_type,
                     hardware_profile.performance_tier,
-                );
+                )
+                .map_err(|error| anyhow!(error))?;
 
                 let context_param = WhisperContextParameters {
                     use_gpu: acceleration.use_gpu,

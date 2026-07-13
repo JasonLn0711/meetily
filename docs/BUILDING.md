@@ -1,323 +1,102 @@
-# Building Meetily from Source
+# Building Meetily
 
-This guide provides detailed instructions for building Meetily from source on different operating systems.
+Meetily is a Tauri desktop application with a Next.js frontend and a Rust core.
+Its ASR runtime is GPU-only: a build can prepare the UI and model files on any
+supported development machine, while transcription activates only when a
+compatible GPU backend is compiled and detected.
 
-<details>
-<summary>Linux</summary>
+## Prerequisites
 
-## 🐧 Building on Linux
+- Node.js 18 or newer
+- pnpm or npm
+- Rust 1.85 or newer
+- platform-specific Tauri system dependencies
+- one supported ASR GPU toolchain from the table below
 
-This guide helps you build Meetily on Linux with **automatic GPU acceleration**. The build system detects your hardware and configures the best performance automatically.
+| Platform | GPU toolchain | Feature |
+| --- | --- | --- |
+| macOS | Metal/CoreML | target default |
+| Windows/Linux NVIDIA | CUDA Toolkit | `cuda` |
+| Windows/Linux AMD or Intel | Vulkan SDK | `vulkan` |
+| Linux AMD | ROCm/HIP | `hipblas` |
 
----
+Parakeet specifically uses the CUDA ONNX Runtime provider. Whisper supports
+Metal, CUDA, Vulkan, and HIP.
 
-### 🚀 Quick Start (Recommended for Beginners)
-
-If you're new to building on Linux, start here. These simple commands work for most users:
-
-#### 1. Install Basic Dependencies
-
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install build-essential cmake git
-
-# Fedora/RHEL
-sudo dnf install gcc-c++ cmake git
-
-# Arch Linux
-sudo pacman -S base-devel cmake git
-```
-
-#### 2. Build and Run
+## Install and run
 
 ```bash
-# Development mode (with hot reload)
-./dev-gpu.sh
-
-# Production build
-./build-gpu.sh
+cd frontend
+pnpm install
+pnpm run tauri:dev
 ```
 
-**That's it!** The scripts automatically detect your GPU and configure acceleration.
+`tauri:dev` and `tauri:build` call the GPU detector. The detector selects a
+supported backend or returns an activation error with the missing toolchain.
 
-### What Happens Automatically?
-
-- ✅ **NVIDIA GPU** → CUDA acceleration (if toolkit installed)
-- ✅ **AMD GPU** → ROCm acceleration (if ROCm installed)
-- ✅ **No GPU** → Optimized CPU mode (still works great!)
-
-> 💡 **Tip:** If you have an NVIDIA or AMD GPU but want better performance, jump to the [GPU Setup](#-gpu-setup-guides-intermediate) section below.
-
----
-
-### 🧠 Understanding Auto-Detection
-
-The build scripts (`dev-gpu.sh` and `build-gpu.sh`) orchestrate the entire build process. Here's how they work:
-
-1.  **Detect location:** Find `package.json` (works from project root or `frontend/`)
-2.  **Auto-detect GPU:** Run `scripts/auto-detect-gpu.js` (or use `TAURI_GPU_FEATURE` if set)
-3.  **Build Sidecar:** Build `llama-helper` with the detected feature (debug or release)
-4.  **Copy Binary:** Copy the built sidecar to `src-tauri/binaries` with the target triple
-5.  **Run Tauri:** Call `npm run tauri:dev` or `tauri:build` with the feature flag passed via env var
-
-#### Detection Priority
-
-| Priority | Hardware        | What It Checks                                               | Result                  |
-| -------- | --------------- | ------------------------------------------------------------ | ----------------------- |
-| 1️⃣       | **NVIDIA CUDA** | `nvidia-smi` exists + (`CUDA_PATH` or `nvcc` found)          | `--features cuda`       |
-| 2️⃣       | **AMD ROCm**    | `rocm-smi` exists + (`ROCM_PATH` or `hipcc` found)           | `--features hipblas`    |
-| 3️⃣       | **Vulkan**      | `vulkaninfo` exists + `VULKAN_SDK` + `BLAS_INCLUDE_DIRS` set | `--features vulkan`     |
-| 4️⃣       | **OpenBLAS**    | `BLAS_INCLUDE_DIRS` set                                      | `--features openblas`   |
-| 5️⃣       | **CPU-only**    | None of the above                                            | (no features, pure CPU) |
-
-#### Common Scenarios
-
-| Your System               | Auto-Detection Result       | Why                          |
-| ------------------------- | --------------------------- | ---------------------------- |
-| Clean Linux install       | CPU-only                    | No GPU SDK detected          |
-| NVIDIA GPU + drivers only | CPU-only                    | CUDA toolkit not installed   |
-| NVIDIA GPU + CUDA toolkit | **CUDA acceleration** ✅    | Full detection successful    |
-| AMD GPU + ROCm            | **HIPBlas acceleration** ✅ | Full detection successful    |
-| Vulkan drivers only       | CPU-only                    | Vulkan SDK + env vars needed |
-| Vulkan SDK configured     | **Vulkan acceleration** ✅  | All requirements met         |
-
-> 💡 **Key Insight:** Having GPU drivers alone isn't enough. You need the **development SDK** (CUDA toolkit, ROCm, or Vulkan SDK) for acceleration.
-
----
-
-### 🔧 GPU Setup Guides (Intermediate)
-
-Want better performance? Follow these guides to enable GPU acceleration.
-
-#### 🟢 NVIDIA CUDA Setup
-
-**Prerequisites:** NVIDIA GPU with compute capability 5.0+ (check: `nvidia-smi --query-gpu=compute_cap --format=csv`)
-
-##### Step 1: Install CUDA Toolkit
+For a known target, select the backend explicitly:
 
 ```bash
-# Ubuntu/Debian (CUDA 12.x)
-sudo apt install nvidia-driver-550 nvidia-cuda-toolkit
+# NVIDIA CUDA
+pnpm run tauri:dev:cuda
+pnpm run tauri:build:cuda
 
-# Verify installation
-nvidia-smi          # Shows GPU info
-nvcc --version      # Shows CUDA version
+# Vulkan
+pnpm run tauri:dev:vulkan
+pnpm run tauri:build:vulkan
+
+# Linux ROCm/HIP
+pnpm run tauri:dev:hipblas
+pnpm run tauri:build:hipblas
 ```
 
-##### Step 2: Build with CUDA
+On macOS, the target-specific Rust dependency enables Metal/CoreML.
+
+## Linux dependencies
+
+Ubuntu/Debian requires the Tauri, CPAL, and Vulkan development packages used by
+the release workflows. The workflow files under `.github/workflows/` are the
+canonical package list for supported Ubuntu images. In particular, keep these
+audio packages available:
 
 ```bash
-# Set your GPU's compute capability
-# Example: RTX 3080 = 8.6 → use "86"
-# Example: GTX 1080 = 6.1 → use "61"
-
-CMAKE_CUDA_ARCHITECTURES=75 \
-CMAKE_CUDA_STANDARD=17 \
-CMAKE_POSITION_INDEPENDENT_CODE=ON \
-./build-gpu.sh
+sudo apt install libasound2-dev libpipewire-0.3-dev libpulse-dev
 ```
 
-> 💡 **Finding Your Compute Capability:**
->
-> ```bash
-> nvidia-smi --query-gpu=compute_cap --format=csv
-> ```
->
-> Convert `7.5` → `75`, `8.6` → `86`, etc.
+For Vulkan builds, install the LunarG Vulkan SDK and set `VULKAN_SDK`. For CUDA
+builds, install the CUDA Toolkit so `nvcc` or `CUDA_HOME` is available. For HIP
+builds, install ROCm so `hipcc` or `ROCM_PATH` is available.
 
-**Why these flags?**
+## Windows dependencies
 
-- `CMAKE_CUDA_ARCHITECTURES`: Optimizes for your specific GPU
-- `CMAKE_CUDA_STANDARD=17`: Ensures C++17 compatibility
-- `CMAKE_POSITION_INDEPENDENT_CODE=ON`: Fixes linking issues on modern systems
+Install Visual Studio 2022 Build Tools, the Windows SDK, LLVM, and either:
 
----
+- CUDA Toolkit for `cuda`; or
+- Vulkan SDK for `vulkan`.
 
-#### 🔵 Vulkan Setup (Cross-Platform Fallback)
+The PowerShell helper scripts use Vulkan explicitly. The batch helper uses the
+same GPU detector as the npm scripts.
 
-Vulkan works on NVIDIA, AMD, and Intel GPUs. Good choice if CUDA/ROCm don't work.
+## Runtime contract
 
-##### Step 1: Install Vulkan SDK and BLAS
+Whisper validates the compiled backend against runtime GPU detection before
+creating a model context. Parakeet registers CUDA with
+`error_on_failure` and disables ONNX Runtime CPU execution-provider fallback.
+An unmet GPU condition preserves model files and returns the activation action;
+it never starts ASR inference on CPU.
+
+## Validation
+
+Before publishing a build:
 
 ```bash
-# Ubuntu/Debian
-sudo apt install vulkan-sdk libopenblas-dev
-
-# Fedora
-sudo dnf install vulkan-devel openblas-devel
-
-# Arch Linux
-sudo pacman -S vulkan-devel openblas
+cd frontend/src-tauri
+cargo check --features vulkan
+cargo test --features vulkan whisper_engine::acceleration
 ```
 
-##### Step 2: Configure Environment
+For an NVIDIA release candidate, use `--features cuda`. Hardware qualification
+then runs a real reference-backed audio sample on the target GPU and records the
+compiled backend, transcript, timing, and GPU telemetry.
 
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export VULKAN_SDK=/usr
-export BLAS_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu
-
-# Apply changes
-source ~/.bashrc
-```
-
-##### Step 3: Build
-
-```bash
-./build-gpu.sh
-```
-
-The script will automatically detect Vulkan and build with `--features vulkan`.
-
----
-
-#### 🔴 AMD ROCm Setup (AMD GPUs Only)
-
-**Prerequisites:** AMD GPU with ROCm support (RX 5000+, Radeon VII, etc.)
-
-```bash
-# Ubuntu/Debian
-# Add ROCm repository (see https://rocm.docs.amd.com for latest)
-sudo apt install rocm-smi hipcc
-
-# Set environment
-export ROCM_PATH=/opt/rocm
-
-# Verify
-rocm-smi            # Shows GPU info
-hipcc --version     # Shows ROCm version
-
-# Build
-./build-gpu.sh
-```
-
----
-
-### 🎯 Advanced Usage
-
-#### Manual Feature Override
-
-Want to force a specific acceleration method? Use the `TAURI_GPU_FEATURE` environment variable with the shell scripts:
-
-```bash
-# Force CUDA (ignore auto-detection)
-TAURI_GPU_FEATURE=cuda ./dev-gpu.sh
-TAURI_GPU_FEATURE=cuda ./build-gpu.sh
-
-# Force Vulkan
-TAURI_GPU_FEATURE=vulkan ./dev-gpu.sh
-TAURI_GPU_FEATURE=vulkan ./build-gpu.sh
-
-# Force ROCm (HIPBlas)
-TAURI_GPU_FEATURE=hipblas ./dev-gpu.sh
-TAURI_GPU_FEATURE=hipblas ./build-gpu.sh
-
-# Force CPU-only (for testing)
-TAURI_GPU_FEATURE="" ./dev-gpu.sh
-TAURI_GPU_FEATURE="" ./build-gpu.sh
-
-# Force OpenBLAS (CPU-optimized)
-TAURI_GPU_FEATURE=openblas ./dev-gpu.sh
-TAURI_GPU_FEATURE=openblas ./build-gpu.sh
-```
-
-#### Build Output Location
-
-After successful build:
-
-```
-src-tauri/target/release/bundle/appimage/Meetily_<version>_amd64.AppImage
-```
-
----
-
-### 🧭 Troubleshooting
-
-#### Tauri window renders but buttons do not respond
-
-- See [2026-07-08 Tauri / Next.js hydration and Breeze ASR 25 record](engineering-notes/2026-07-08-tauri-next-hydration-breeze-asr.md) for the current debug path: check Next.js chunks, dev CSP, hydration, Tauri native API calls, and first-launch model cache behavior.
-
-#### "CUDA toolkit not found"
-
-- **Fix:** Install `nvidia-cuda-toolkit` or set `CUDA_PATH` environment variable
-- **Check:** `nvcc --version` should work
-
-#### "Vulkan detected but missing dependencies"
-
-- **Fix:** Set both `VULKAN_SDK` and `BLAS_INCLUDE_DIRS` environment variables
-- **Example:**
-  ```bash
-  export VULKAN_SDK=/usr
-  export BLAS_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu
-  ```
-
-#### "AppImage build stripping symbols"
-
-- **Fix:** Already handled! `build-gpu.sh` sets `NO_STRIP=true` automatically
-- **Why:** Prevents runtime errors from missing symbols
-
-#### Build works but no GPU acceleration
-
-- **Check detection:** Look at the build output for GPU detection messages
-- **Verify:** `nvidia-smi` (NVIDIA) or `rocm-smi` (AMD) should work
-- **Missing SDK:** Install the development toolkit, not just drivers
-
-</details>
-
-<details>
-<summary>macOS</summary>
-
-## 🍎 Building on macOS
-
-On macOS, the build process is simplified as GPU acceleration (Metal) is enabled by default.
-
-### 1. Install Dependencies
-
-```bash
-# Install Homebrew (if not already installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install required tools
-brew install cmake node pnpm
-```
-
-### 2. Build and Run
-
-```bash
-# Development mode (with hot reload)
-pnpm tauri:dev
-
-# Production build
-pnpm tauri:build
-```
-
-The application will be built with Metal GPU acceleration automatically.
-
-</details>
-
-<details>
-<summary>Windows</summary>
-
-## 🪟 Building on Windows
-
-### 1. Install Dependencies
-
-- **Node.js:** Download and install from [nodejs.org](https://nodejs.org/).
-- **Rust:** Install from [rust-lang.org](https://www.rust-lang.org/tools/install).
-- **Visual Studio Build Tools:** Install the "Desktop development with C++" workload from the Visual Studio Installer.
-- **CMake:** Download and install from [cmake.org](https://cmake.org/download/).
-
-### 2. Build and Run
-
-```powershell
-# Development mode (with hot reload)
-pnpm tauri:dev
-
-# Production build
-pnpm tauri:build
-```
-
-By default, the application will be built with CPU-only processing. To enable GPU acceleration, see the [GPU Acceleration Guide](GPU_ACCELERATION.md).
-
-</details>
+See [GPU acceleration](GPU_ACCELERATION.md) for backend-specific checks.

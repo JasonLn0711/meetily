@@ -1,6 +1,8 @@
 use ndarray::{Array, Array1, Array2, Array3, ArrayD, ArrayViewD, IxDyn};
 use once_cell::sync::Lazy;
-use ort::execution_providers::CPUExecutionProvider;
+#[cfg(feature = "cuda")]
+use ort::execution_providers::CUDAExecutionProvider;
+use ort::execution_providers::ExecutionProviderDispatch;
 use ort::inputs;
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
@@ -35,6 +37,8 @@ pub enum ParakeetError {
     Io(#[from] std::io::Error),
     #[error("ndarray shape error")]
     Shape(#[from] ndarray::ShapeError),
+    #[error("Parakeet ASR requires the CUDA execution provider; rebuild Meetily with --features cuda and activate a working CUDA runtime")]
+    GpuBackendRequired,
     #[error("Model input not found: {0}")]
     InputNotFound(String),
     #[error("Model output not found: {0}")]
@@ -54,7 +58,10 @@ pub struct ParakeetModel {
 
 impl Drop for ParakeetModel {
     fn drop(&mut self) {
-        log::debug!("Dropping ParakeetModel with {} vocab tokens", self.vocab.len());
+        log::debug!(
+            "Dropping ParakeetModel with {} vocab tokens",
+            self.vocab.len()
+        );
     }
 }
 
@@ -89,14 +96,17 @@ impl ParakeetModel {
         intra_threads: Option<usize>,
         try_quantized: bool,
     ) -> Result<Session, ParakeetError> {
-        let providers = vec![CPUExecutionProvider::default().build()];
+        let providers = [Self::required_cuda_provider()?];
 
         // Try quantized version first if requested, fallback to regular version
         let model_filename = if try_quantized {
             let quantized_name = format!("{}.int8.onnx", model_name);
             let quantized_path = model_dir.as_ref().join(&quantized_name);
             if quantized_path.exists() {
-                log::info!("Loading quantized Parakeet model from {}...", quantized_name);
+                log::info!(
+                    "Loading quantized Parakeet model from {}...",
+                    quantized_name
+                );
                 quantized_name
             } else {
                 let regular_name = format!("{}.onnx", model_name);
@@ -115,6 +125,7 @@ impl ParakeetModel {
         let mut builder = Session::builder()?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_execution_providers(providers)?
+            .with_config_entry("session.disable_cpu_ep_fallback", "1")?
             .with_parallel_execution(true)?;
 
         if let Some(threads) = intra_threads {
@@ -135,6 +146,18 @@ impl ParakeetModel {
         }
 
         Ok(session)
+    }
+
+    fn required_cuda_provider() -> Result<ExecutionProviderDispatch, ParakeetError> {
+        #[cfg(feature = "cuda")]
+        {
+            return Ok(CUDAExecutionProvider::default().build().error_on_failure());
+        }
+
+        #[cfg(not(feature = "cuda"))]
+        {
+            Err(ParakeetError::GpuBackendRequired)
+        }
     }
 
     fn load_vocab<P: AsRef<Path>>(model_dir: P) -> Result<(Vec<String>, i32), ParakeetError> {
@@ -494,5 +517,21 @@ impl ParakeetModel {
         })?;
 
         Ok(timestamped_result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parakeet_cuda_provider_is_an_explicit_activation_gate() {
+        let provider = ParakeetModel::required_cuda_provider();
+
+        #[cfg(feature = "cuda")]
+        assert!(provider.is_ok());
+
+        #[cfg(not(feature = "cuda"))]
+        assert!(matches!(provider, Err(ParakeetError::GpuBackendRequired)));
     }
 }

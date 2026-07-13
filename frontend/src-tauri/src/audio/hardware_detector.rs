@@ -102,7 +102,7 @@ impl HardwareProfile {
             return (true, GpuType::Vulkan);
         }
 
-        // Fallback to CPU-only
+        // ASR activation remains gated when no GPU runtime is detected.
         (false, GpuType::None)
     }
 
@@ -158,8 +158,7 @@ impl HardwareProfile {
 
     #[cfg(target_os = "macos")]
     fn has_metal_support() -> bool {
-        // Simple check for Apple Silicon (Metal is available on Intel Macs too, but less optimal for ML)
-        std::env::consts::ARCH == "aarch64"
+        true
     }
 
     fn has_cuda_support() -> bool {

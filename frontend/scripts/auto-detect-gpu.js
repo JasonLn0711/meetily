@@ -40,8 +40,7 @@ function detectGPU() {
         console.log('🟢 NVIDIA GPU detected with CUDA - using CUDA acceleration');
         return 'cuda';
       } else {
-        console.log('⚠️  NVIDIA GPU detected but CUDA not installed - falling back to CPU');
-        return null;
+        throw new Error('NVIDIA GPU detected, and ASR activation requires the CUDA Toolkit (CUDA_PATH or nvcc).');
       }
     }
 
@@ -52,37 +51,23 @@ function detectGPU() {
         console.log('🔴 AMD GPU detected with ROCm - using HIPBlas acceleration');
         return 'hipblas';
       } else {
-        console.log('⚠️  AMD GPU detected but ROCm not installed - falling back to CPU');
-        return null;
+        throw new Error('AMD GPU detected, and HIP ASR activation requires ROCm (ROCM_PATH or hipcc).');
       }
     }
 
     // Check for Vulkan
     if (commandExists('vulkaninfo') || (platform === 'win32' && require('fs').existsSync('C:\\VulkanSDK'))) {
       const vulkanSdk = process.env.VULKAN_SDK;
-      const blasInclude = process.env.BLAS_INCLUDE_DIRS;
-
-      if (vulkanSdk && blasInclude) {
+      if (vulkanSdk) {
         console.log('🔵 Vulkan detected with all dependencies - using Vulkan acceleration');
         return 'vulkan';
       } else {
-        console.log('⚠️  Vulkan detected but missing dependencies - falling back to CPU');
-        if (!vulkanSdk) console.log('   Missing: VULKAN_SDK environment variable');
-        if (!blasInclude) console.log('   Missing: BLAS_INCLUDE_DIRS environment variable');
-        return null;
+        throw new Error('Vulkan GPU detected, and ASR activation requires VULKAN_SDK.');
       }
-    }
-
-    // Check if OpenBLAS is available
-    const blasInclude = process.env.BLAS_INCLUDE_DIRS;
-    if (blasInclude) {
-      console.log('📊 OpenBLAS detected - using CPU with BLAS optimization');
-      return 'openblas';
     }
   }
 
-  console.log('💻 No GPU acceleration available - using CPU-only mode');
-  return null;
+  throw new Error('No supported GPU backend detected. Meetily ASR requires CUDA, Vulkan, HIP, or Metal.');
 }
 
 // Redirect console.log to stderr so only the feature goes to stdout

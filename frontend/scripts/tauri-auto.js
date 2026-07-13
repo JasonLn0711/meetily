@@ -17,6 +17,7 @@ if (!command || !['dev', 'build'].includes(command)) {
 
 // Detect GPU feature
 let feature = '';
+const GPU_FEATURES = new Set(['cuda', 'vulkan', 'hipblas', 'metal', 'coreml']);
 
 // Check for environment variable override first
 if (process.env.TAURI_GPU_FEATURE) {
@@ -30,8 +31,14 @@ if (process.env.TAURI_GPU_FEATURE) {
     });
     feature = result.trim();
   } catch (err) {
-    // If detection fails, continue with no features
+    console.error('Meetily ASR requires a GPU backend; automatic GPU detection did not produce one.');
+    process.exit(err.status || 1);
   }
+}
+
+if (!GPU_FEATURES.has(feature)) {
+  console.error(`Meetily ASR requires one GPU feature (${[...GPU_FEATURES].join(', ')}); received: ${feature || 'none'}.`);
+  process.exit(1);
 }
 
 console.log(''); // Empty line for spacing
@@ -49,12 +56,8 @@ if (platform === 'linux' && feature === 'cuda') {
 
 // Build the tauri command
 let tauriCmd = `tauri ${command}`;
-if (feature && feature !== 'none') {
-  tauriCmd += ` -- --features ${feature}`;
-  console.log(`🚀 Running: tauri ${command} with features: ${feature}`);
-} else {
-  console.log(`🚀 Running: tauri ${command} (CPU-only mode)`);
-}
+tauriCmd += ` -- --features ${feature}`;
+console.log(`🚀 Running: tauri ${command} with GPU feature: ${feature}`);
 console.log('');
 
 // Execute the command

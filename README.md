@@ -144,7 +144,6 @@ Whether you're a defense consultant, enterprise executive, legal professional, o
 
 Build from source following our detailed guides:
 
-- [Building on Linux](docs/building_in_linux.md)
 - [General Build Instructions](docs/BUILDING.md)
 
 **Quick start:**
@@ -214,12 +213,14 @@ Capture microphone and system audio simultaneously with intelligent ducking and 
 
 ### ⚡ GPU Acceleration
 
-Built-in support for hardware acceleration across platforms:
+ASR runs through a required GPU backend across platforms:
 
 - **macOS**: Apple Silicon (Metal) + CoreML
 - **Windows/Linux**: NVIDIA (CUDA), AMD/Intel (Vulkan)
 
-Automatically enabled at build time - no configuration needed.
+Automatic detection selects a supported backend and returns a clear activation
+action when the matching GPU toolchain is not ready. ASR never falls back to
+CPU inference.
 
 ## System Architecture
 

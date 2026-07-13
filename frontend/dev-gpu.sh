@@ -69,16 +69,16 @@ if [ -z "$TAURI_GPU_FEATURE" ]; then
     TAURI_GPU_FEATURE=$(node scripts/auto-detect-gpu.js)
 fi
 
-if [ -n "$TAURI_GPU_FEATURE" ]; then
-    if [ "$TAURI_GPU_FEATURE" == "none" ]; then
-        echo -e "${YELLOW}⚠️ GPU feature explicitly set to none. Running in CPU-only mode.${NC}"
-    else
+case "$TAURI_GPU_FEATURE" in
+    cuda|vulkan|hipblas|metal|coreml)
         echo -e "${GREEN}✅ Detected GPU feature: $TAURI_GPU_FEATURE${NC}"
-    fi
-    export TAURI_GPU_FEATURE
-else
-    echo -e "${YELLOW}⚠️ No specific GPU feature detected or forced${NC}"
-fi
+        export TAURI_GPU_FEATURE
+        ;;
+    *)
+        echo -e "${RED}❌ Meetily ASR requires CUDA, Vulkan, HIP, or Metal; received '${TAURI_GPU_FEATURE:-none}'.${NC}"
+        exit 1
+        ;;
+esac
 
 # Build llama-helper
 echo ""
@@ -100,7 +100,7 @@ fi
 # Note: llama-cpp-2 does NOT support coreml, only metal/cuda/vulkan
 # So for macOS Apple Silicon (which returns 'coreml' for Whisper), use 'metal' for llama-helper
 HELPER_FEATURES=""
-if [ -n "$TAURI_GPU_FEATURE" ] && [ "$TAURI_GPU_FEATURE" != "none" ]; then
+if [ -n "$TAURI_GPU_FEATURE" ]; then
     LLAMA_FEATURE="$TAURI_GPU_FEATURE"
     if [ "$LLAMA_FEATURE" = "coreml" ]; then
         LLAMA_FEATURE="metal"

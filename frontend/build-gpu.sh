@@ -81,12 +81,16 @@ if [ -z "$TAURI_GPU_FEATURE" ]; then
     fi
 fi
 
-if [ -n "$TAURI_GPU_FEATURE" ]; then
-    echo -e "${GREEN}✅ Detected GPU feature: $TAURI_GPU_FEATURE${NC}"
-    export TAURI_GPU_FEATURE
-else
-    echo -e "${YELLOW}⚠️ No specific GPU feature detected or forced${NC}"
-fi
+case "$TAURI_GPU_FEATURE" in
+    cuda|vulkan|hipblas|metal|coreml)
+        echo -e "${GREEN}✅ Detected GPU feature: $TAURI_GPU_FEATURE${NC}"
+        export TAURI_GPU_FEATURE
+        ;;
+    *)
+        echo -e "${RED}❌ Meetily ASR requires CUDA, Vulkan, HIP, or Metal; received '${TAURI_GPU_FEATURE:-none}'.${NC}"
+        exit 1
+        ;;
+esac
 
 # Build llama-helper
 echo ""
@@ -187,4 +191,3 @@ else
   echo -e "${RED}❌ Build failed${NC}"
   exit 1
 fi
-

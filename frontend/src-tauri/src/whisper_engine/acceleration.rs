@@ -33,6 +33,18 @@ impl WhisperCompiledBackend {
             Self::Cpu => "Cpu",
         }
     }
+
+    pub fn activation_hint(self) -> &'static str {
+        match self {
+            Self::Metal => "run on a Metal-capable macOS device",
+            Self::Cuda => "install a working NVIDIA CUDA runtime",
+            Self::Vulkan => "install a working Vulkan GPU runtime",
+            Self::HipBlas => "install a working ROCm/HIP runtime",
+            Self::Cpu => {
+                "rebuild Meetily with --features cuda, --features vulkan, or --features hipblas"
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,7 +65,7 @@ impl WhisperContextAcceleration {
             (WhisperCompiledBackend::Cuda, false) => "CUDA GPU acceleration",
             (WhisperCompiledBackend::Vulkan, _) => "Vulkan GPU acceleration",
             (WhisperCompiledBackend::HipBlas, _) => "HIP BLAS GPU acceleration",
-            (WhisperCompiledBackend::Cpu, _) => "CPU processing only",
+            (WhisperCompiledBackend::Cpu, _) => "GPU backend activation required",
         }
     }
 }
@@ -62,21 +74,41 @@ pub fn whisper_context_acceleration_for(
     compiled_backend: WhisperCompiledBackend,
     runtime_detected_gpu: GpuType,
     performance_tier: PerformanceTier,
-) -> WhisperContextAcceleration {
-    let use_gpu = !matches!(compiled_backend, WhisperCompiledBackend::Cpu);
-    let fast_tier = matches!(performance_tier, PerformanceTier::High | PerformanceTier::Ultra);
+) -> Result<WhisperContextAcceleration, String> {
+    let runtime_matches_backend = match compiled_backend {
+        WhisperCompiledBackend::Metal => runtime_detected_gpu == GpuType::Metal,
+        WhisperCompiledBackend::Cuda => runtime_detected_gpu == GpuType::Cuda,
+        WhisperCompiledBackend::Vulkan | WhisperCompiledBackend::HipBlas => {
+            runtime_detected_gpu != GpuType::None
+        }
+        WhisperCompiledBackend::Cpu => false,
+    };
+    if !runtime_matches_backend {
+        return Err(format!(
+            "Meetily ASR requires an active GPU backend; compiled_backend={} runtime_detected_gpu={runtime_detected_gpu:?}. Next action: {}.",
+            compiled_backend.as_str(),
+            compiled_backend.activation_hint(),
+        ));
+    }
+
+    let fast_tier = matches!(
+        performance_tier,
+        PerformanceTier::High | PerformanceTier::Ultra
+    );
     let flash_attn = match compiled_backend {
         WhisperCompiledBackend::Metal | WhisperCompiledBackend::Cuda => fast_tier,
-        WhisperCompiledBackend::Vulkan | WhisperCompiledBackend::HipBlas | WhisperCompiledBackend::Cpu => false,
+        WhisperCompiledBackend::Vulkan
+        | WhisperCompiledBackend::HipBlas
+        | WhisperCompiledBackend::Cpu => false,
     };
 
-    WhisperContextAcceleration {
+    Ok(WhisperContextAcceleration {
         compiled_backend,
         runtime_detected_gpu,
-        use_gpu,
-        flash_attn: use_gpu && flash_attn,
+        use_gpu: true,
+        flash_attn,
         gpu_device: 0,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -89,7 +121,8 @@ mod tests {
             WhisperCompiledBackend::Vulkan,
             GpuType::Cuda,
             PerformanceTier::High,
-        );
+        )
+        .unwrap();
 
         assert_eq!(params.compiled_backend, WhisperCompiledBackend::Vulkan);
         assert_eq!(params.runtime_detected_gpu, GpuType::Cuda);
@@ -98,15 +131,16 @@ mod tests {
     }
 
     #[test]
-    fn acceleration_vulkan_backend_keeps_gpu_without_runtime_gpu_detection() {
-        let params = whisper_context_acceleration_for(
+    fn acceleration_vulkan_backend_requires_runtime_gpu_detection() {
+        let error = whisper_context_acceleration_for(
             WhisperCompiledBackend::Vulkan,
             GpuType::None,
             PerformanceTier::Low,
-        );
+        )
+        .unwrap_err();
 
-        assert!(params.use_gpu);
-        assert!(!params.flash_attn);
+        assert!(error.contains("requires an active GPU backend"));
+        assert!(error.contains("Vulkan"));
     }
 
     #[test]
@@ -115,12 +149,14 @@ mod tests {
             WhisperCompiledBackend::Cuda,
             GpuType::Cuda,
             PerformanceTier::High,
-        );
+        )
+        .unwrap();
         let ultra = whisper_context_acceleration_for(
             WhisperCompiledBackend::Cuda,
             GpuType::Cuda,
             PerformanceTier::Ultra,
-        );
+        )
+        .unwrap();
 
         assert!(high.use_gpu);
         assert!(high.flash_attn);
@@ -129,16 +165,29 @@ mod tests {
     }
 
     #[test]
-    fn acceleration_cpu_backend_disables_gpu_and_flash_attention() {
+    fn acceleration_cpu_backend_is_rejected_for_every_runtime_detection() {
         for runtime_gpu in [GpuType::None, GpuType::Cuda, GpuType::Vulkan] {
-            let params = whisper_context_acceleration_for(
+            let error = whisper_context_acceleration_for(
                 WhisperCompiledBackend::Cpu,
                 runtime_gpu,
                 PerformanceTier::Ultra,
-            );
+            )
+            .unwrap_err();
 
-            assert!(!params.use_gpu);
-            assert!(!params.flash_attn);
+            assert!(error.contains("requires an active GPU backend"));
+            assert!(error.contains("rebuild Meetily"));
         }
+    }
+
+    #[test]
+    fn acceleration_cuda_backend_rejects_non_cuda_runtime() {
+        let error = whisper_context_acceleration_for(
+            WhisperCompiledBackend::Cuda,
+            GpuType::Vulkan,
+            PerformanceTier::High,
+        )
+        .unwrap_err();
+
+        assert!(error.contains("install a working NVIDIA CUDA runtime"));
     }
 }

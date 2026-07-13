@@ -1,57 +1,85 @@
-# GPU Acceleration Guide
+# GPU-only ASR Activation
 
-Meetily supports GPU acceleration for transcription, which can significantly improve performance. This guide provides detailed information on how to set up and configure GPU acceleration for your system.
+Meetily speech recognition runs through a GPU backend. The application treats
+GPU readiness as an activation contract rather than a performance preference.
 
-## Supported Backends
+## Whisper backend matrix
 
-Meetily uses the `whisper-rs` library, which supports several GPU acceleration backends:
+- **Metal/CoreML:** macOS
+- **CUDA:** NVIDIA on Windows or Linux
+- **Vulkan:** NVIDIA, AMD, or Intel on Windows or Linux
+- **HIP BLAS:** AMD ROCm on Linux
 
-*   **CUDA:** For NVIDIA GPUs.
-*   **Metal:** For Apple Silicon and modern Intel-based Macs.
-*   **Core ML:** An additional acceleration layer for Apple Silicon.
-*   **Vulkan:** A cross-platform solution for modern AMD and Intel GPUs.
-*   **OpenBLAS:** A CPU-based optimization that can provide a significant speed-up over standard CPU processing.
+Whisper model loading requires both a compiled backend and a compatible runtime
+GPU detection result. The context is always created with `use_gpu=true`.
 
-## Automatic GPU Detection
+## Parakeet backend
 
-The build scripts (`dev-gpu.sh`, `build-gpu.sh`) are designed to automatically detect your GPU and enable the appropriate feature flag during the build process. The detection is handled by the `scripts/auto-detect-gpu.js` script.
+Parakeet uses the CUDA ONNX Runtime execution provider. Session creation:
 
-Here's the detection priority:
+- registers CUDA with `error_on_failure`;
+- sets `session.disable_cpu_ep_fallback=1`;
+- returns a CUDA activation error in builds without the `cuda` feature.
 
-1.  **CUDA (NVIDIA)**
-2.  **Metal (Apple)**
-3.  **Vulkan (AMD/Intel)**
-4.  **OpenBLAS (CPU)**
+This gives Parakeet a single auditable inference path.
 
-If no GPU is detected, the application will fall back to CPU-only processing.
+## Automatic detection
 
-## Manual Configuration
-
-If you want to manually configure the GPU acceleration backend, you can do so by enabling the corresponding feature flag in the `frontend/src-tauri/Cargo.toml` file.
-
-For example, to enable CUDA, you would modify the `[features]` section as follows:
-
-```toml
-[features]
-default = ["cuda"]
-
-# ... other features
-
-cuda = ["whisper-rs/cuda"]
+```bash
+cd frontend
+node scripts/auto-detect-gpu.js
 ```
 
-Then, you would build the application using the standard `pnpm tauri:build` command.
+The command prints one feature name on standard output: `cuda`, `vulkan`,
+`hipblas`, `metal`, or `coreml`. Missing drivers or SDKs produce an activation
+error and a nonzero exit status.
 
-## Platform-Specific Instructions
+You can choose a known backend through `TAURI_GPU_FEATURE`:
 
-### Linux
+```bash
+TAURI_GPU_FEATURE=cuda npm run tauri:dev
+TAURI_GPU_FEATURE=vulkan npm run tauri:build
+```
 
-For detailed instructions on setting up GPU acceleration on Linux, please refer to the [Linux build instructions](BUILDING.md#--building-on-linux).
+The Tauri wrapper validates the value against the GPU feature allowlist.
 
-### macOS
+## Readiness checks
 
-On macOS, Metal GPU acceleration is enabled by default. No additional configuration is required.
+### CUDA
 
-### Windows
+```bash
+nvidia-smi
+nvcc --version
+```
 
-To enable GPU acceleration on Windows, you will need to install the appropriate toolkit for your GPU (e.g., the CUDA Toolkit for NVIDIA GPUs) and then build the application with the corresponding feature flag enabled.
+### Vulkan
+
+```bash
+vulkaninfo --summary
+test -n "$VULKAN_SDK"
+```
+
+### HIP
+
+```bash
+rocm-smi
+hipcc --version
+```
+
+### Metal
+
+Metal is provided by the supported macOS toolchain and selected by the
+target-specific dependency configuration.
+
+## Evidence gate
+
+A GPU-enabled compile confirms packaging. A release-facing inference claim also
+requires a real audio run on target hardware with:
+
+- generated transcript output;
+- compiled backend recorded;
+- real inference timestamps;
+- GPU telemetry during inference;
+- visible error records for failed runs.
+
+This separates build readiness from hardware-backed runtime evidence.
