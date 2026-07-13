@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
+import type { SummaryDataResponse } from '@/types';
 
 
 interface SidebarItem {
@@ -27,6 +28,16 @@ interface TranscriptSearchResult {
   timestamp: string;
 };
 
+interface SummaryPollResult {
+  status: string;
+  meetingName?: string | null;
+  meeting_id?: string;
+  start?: string | null;
+  end?: string | null;
+  data?: SummaryDataResponse | null;
+  error?: string | null;
+}
+
 interface SidebarContextType {
   currentMeeting: CurrentMeeting | null;
   setCurrentMeeting: (meeting: CurrentMeeting | null) => void;
@@ -41,13 +52,9 @@ interface SidebarContextType {
   searchTranscripts: (query: string) => Promise<void>;
   searchResults: TranscriptSearchResult[];
   isSearching: boolean;
-  setServerAddress: (address: string) => void;
-  serverAddress: string;
-  transcriptServerAddress: string;
-  setTranscriptServerAddress: (address: string) => void;
   // Summary polling management
   activeSummaryPolls: Map<string, NodeJS.Timeout>;
-  startSummaryPolling: (meetingId: string, processId: string, onUpdate: (result: any) => void) => void;
+  startSummaryPolling: (meetingId: string, processId: string, onUpdate: (result: SummaryPollResult) => void) => void;
   stopSummaryPolling: (meetingId: string) => void;
   // Refetch meetings from backend
   refetchMeetings: () => Promise<void>;
@@ -68,12 +75,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [currentMeeting, setCurrentMeeting] = useState<CurrentMeeting | null>({ id: 'intro-call', title: '+ New Call' });
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [meetings, setMeetings] = useState<CurrentMeeting[]>([]);
-  const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
   const [isMeetingActive, setIsMeetingActive] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<TranscriptSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [serverAddress, setServerAddress] = useState('');
-  const [transcriptServerAddress, setTranscriptServerAddress] = useState('');
   const [activeSummaryPolls, setActiveSummaryPolls] = useState<Map<string, NodeJS.Timeout>>(new Map());
 
   // Use recording state from RecordingStateContext (single source of truth)
@@ -84,45 +88,27 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   // Extract fetchMeetings as a reusable function
   const fetchMeetings = React.useCallback(async () => {
-    if (serverAddress) {
-      try {
-        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string }>;
-        const transformedMeetings = meetings.map((meeting: any) => ({
-          id: meeting.id,
-          title: meeting.title
-        }));
-        setMeetings(transformedMeetings);
-        Analytics.trackBackendConnection(true);
-      } catch (error) {
-        console.error('Error fetching meetings:', error);
-        setMeetings([]);
-        Analytics.trackBackendConnection(false, error instanceof Error ? error.message : 'Unknown error');
-      }
+    try {
+      const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string }>;
+      setMeetings(meetings.map(({ id, title }) => ({ id, title })));
+      Analytics.trackBackendConnection(true);
+    } catch (error) {
+      console.error('Error fetching meetings:', error);
+      setMeetings([]);
+      Analytics.trackBackendConnection(false, error instanceof Error ? error.message : 'Unknown error');
     }
-  }, [serverAddress]);
+  }, []);
 
   useEffect(() => {
     fetchMeetings();
-  }, [serverAddress, fetchMeetings]);
+  }, [fetchMeetings]);
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      setServerAddress('http://localhost:5167');
-      setTranscriptServerAddress('http://127.0.0.1:8178/stream');
-    };
-    fetchSettings();
-  }, []);
-
-  const baseItems: SidebarItem[] = [
-    {
-      id: 'meetings',
-      title: 'Meeting Notes',
-      type: 'folder' as const,
-      children: [
-        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, type: 'file' as const }))
-      ]
-    },
-  ];
+  const sidebarItems = React.useMemo<SidebarItem[]>(() => [{
+    id: 'meetings',
+    title: 'Meeting Notes',
+    type: 'folder',
+    children: meetings.map(({ id, title }) => ({ id, title, type: 'file' })),
+  }], [meetings]);
 
 
   const toggleCollapse = () => {
@@ -134,13 +120,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     if (pathname === '/') {
       setCurrentMeeting({ id: 'intro-call', title: '+ New Call' });
     }
-    setSidebarItems(baseItems);
   }, [pathname]);
-
-  // Update sidebar items when meetings change
-  useEffect(() => {
-    setSidebarItems(baseItems);
-  }, [meetings]);
 
   // Function to handle recording toggle from sidebar
   const handleRecordingToggle = () => {
@@ -188,7 +168,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const startSummaryPolling = React.useCallback((
     meetingId: string,
     processId: string,
-    onUpdate: (result: any) => void
+    onUpdate: (result: SummaryPollResult) => void
   ) => {
     // Stop existing poll for this meeting if any
     if (activeSummaryPolls.has(meetingId)) {
@@ -221,7 +201,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       try {
         const result = await invoke('api_get_summary', {
           meetingId: meetingId,
-        }) as any;
+        }) as SummaryPollResult;
 
         console.log(`📊 Polling update for ${meetingId}:`, result.status);
 
@@ -304,10 +284,6 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       searchTranscripts,
       searchResults,
       isSearching,
-      setServerAddress,
-      serverAddress,
-      transcriptServerAddress,
-      setTranscriptServerAddress,
       activeSummaryPolls,
       startSummaryPolling,
       stopSummaryPolling,

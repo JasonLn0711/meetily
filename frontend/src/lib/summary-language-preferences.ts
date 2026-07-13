@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { normaliseLanguageCode } from '@/lib/summary-languages';
+import { normaliseLanguageCode } from './summary-languages.ts';
 
 export const SUMMARY_LANGUAGE_RECENTS_KEY = 'summaryLanguageRecents';
 export const SUMMARY_LANGUAGE_DEFAULT_KEY = 'summaryLanguageDefault';
