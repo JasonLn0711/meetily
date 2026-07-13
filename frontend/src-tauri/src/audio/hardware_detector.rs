@@ -162,10 +162,14 @@ impl HardwareProfile {
     }
 
     fn has_cuda_support() -> bool {
-        // Check for CUDA environment or libraries
-        std::env::var("CUDA_PATH").is_ok()
-            || std::env::var("CUDA_HOME").is_ok()
-            || std::path::Path::new("/usr/local/cuda").exists()
+        std::process::Command::new("nvidia-smi")
+            .args(["--query-gpu=name", "--format=csv,noheader"])
+            .output()
+            .map(|output| {
+                output.status.success()
+                    && !String::from_utf8_lossy(&output.stdout).trim().is_empty()
+            })
+            .unwrap_or(false)
     }
 
     fn has_vulkan_support() -> bool {

@@ -99,4 +99,10 @@ For an NVIDIA release candidate, use `--features cuda`. Hardware qualification
 then runs a real reference-backed audio sample on the target GPU and records the
 compiled backend, transcript, timing, and GPU telemetry.
 
+CUDA release builds set `CMAKE_POSITION_INDEPENDENT_CODE=ON` and pass
+`-Xcompiler=-fPIC` through `CMAKE_CUDA_FLAGS` so whisper.cpp GPU objects can
+link into the Tauri shared library. The helper scripts compile CUDA
+architectures 7.5, 8.6, and 8.9 by default; set `CMAKE_CUDA_ARCHITECTURES` to an
+explicit deployment matrix when another target is required.
+
 See [GPU acceleration](GPU_ACCELERATION.md) for backend-specific checks.
