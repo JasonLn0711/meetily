@@ -1,5 +1,5 @@
 use anyhow::Result;
-use cpal::traits::{DeviceTrait, HostTrait};
+use cpal::traits::HostTrait;
 
 use crate::audio::devices::configuration::{AudioDevice, DeviceType};
 
@@ -10,7 +10,7 @@ pub fn configure_linux_audio(host: &cpal::Host) -> Result<Vec<AudioDevice>> {
     // Enumerate each direction once. Re-opening the ALSA host and then calling
     // host.devices() caused three full native scans on every monitor poll.
     for device in host.input_devices()? {
-        if let Ok(name) = device.name() {
+        if let Ok(name) = super::super::device_name(&device) {
             devices.push(AudioDevice::new(name.clone(), DeviceType::Input));
 
             if name.contains("monitor") {
@@ -23,7 +23,7 @@ pub fn configure_linux_audio(host: &cpal::Host) -> Result<Vec<AudioDevice>> {
     }
 
     for device in host.output_devices()? {
-        if let Ok(name) = device.name() {
+        if let Ok(name) = super::super::device_name(&device) {
             if !devices.iter().any(|candidate| candidate.name == name) {
                 devices.push(AudioDevice::new(name, DeviceType::Output));
             }

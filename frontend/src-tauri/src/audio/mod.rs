@@ -19,6 +19,7 @@ pub mod ffmpeg_mixer;  // NEW: FFmpeg-style adaptive audio mixer
 pub mod recording_state;
 pub mod pipeline;
 pub mod stream;
+pub mod audio_runtime;
 pub mod recording_manager;
 pub mod recording_commands;
 pub mod recording_preferences;
@@ -54,7 +55,6 @@ pub use devices::{
 // Export new simplified components
 pub use recording_state::{RecordingState, AudioChunk, ProcessedAudioChunk, AudioError, DeviceType as RecordingDeviceType};
 pub use pipeline::{AudioPipelineManager};
-pub use stream::{AudioStreamManager};
 pub use recording_manager::{RecordingManager};
 pub use recording_commands::{
     start_recording, start_recording_with_devices, stop_recording,

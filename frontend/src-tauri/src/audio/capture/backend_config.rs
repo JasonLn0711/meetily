@@ -51,12 +51,12 @@ impl AudioCaptureBackend {
         }
     }
 
-    /// Convert to string (lowercase)
-    pub fn to_string(&self) -> String {
+    /// Stable identifier used by preferences and the frontend contract.
+    pub fn as_id(&self) -> &'static str {
         match self {
-            AudioCaptureBackend::ScreenCaptureKit => "screencapturekit".to_string(),
+            AudioCaptureBackend::ScreenCaptureKit => "screencapturekit",
             #[cfg(target_os = "macos")]
-            AudioCaptureBackend::CoreAudio => "coreaudio".to_string(),
+            AudioCaptureBackend::CoreAudio => "coreaudio",
         }
     }
 
@@ -73,19 +73,15 @@ impl AudioCaptureBackend {
         }
     }
 
-    /// Get default backend for current platform
-    pub fn default() -> Self {
-        #[cfg(target_os = "macos")]
-        return AudioCaptureBackend::CoreAudio;
-
-        #[cfg(not(target_os = "macos"))]
-        return AudioCaptureBackend::ScreenCaptureKit;
-    }
 }
 
 impl Default for AudioCaptureBackend {
     fn default() -> Self {
-        Self::default()
+        #[cfg(target_os = "macos")]
+        return AudioCaptureBackend::CoreAudio;
+
+        #[cfg(not(target_os = "macos"))]
+        AudioCaptureBackend::ScreenCaptureKit
     }
 }
 
@@ -155,9 +151,9 @@ mod tests {
 
     #[test]
     fn test_backend_to_string() {
-        assert_eq!(AudioCaptureBackend::ScreenCaptureKit.to_string(), "screencapturekit");
+        assert_eq!(AudioCaptureBackend::ScreenCaptureKit.as_id(), "screencapturekit");
         #[cfg(target_os = "macos")]
-        assert_eq!(AudioCaptureBackend::CoreAudio.to_string(), "coreaudio");
+        assert_eq!(AudioCaptureBackend::CoreAudio.as_id(), "coreaudio");
     }
 
     #[test]

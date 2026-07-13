@@ -8,6 +8,12 @@ pub mod configuration;
 pub mod platform;
 pub mod fallback;
 
+pub(crate) fn device_name(device: &cpal::Device) -> Result<String, cpal::Error> {
+    use cpal::traits::DeviceTrait;
+
+    Ok(device.description()?.name().to_owned())
+}
+
 // Re-export all public functions to preserve existing API
 pub use discovery::{list_audio_devices, trigger_audio_permission};
 pub use microphone::{default_input_device, find_builtin_input_device};

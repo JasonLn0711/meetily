@@ -125,7 +125,7 @@ pub async fn get_device_and_config(
         match audio_device.device_type {
             DeviceType::Input => {
                 for device in host.input_devices()? {
-                    if let Ok(name) = device.name() {
+                    if let Ok(name) = super::device_name(&device) {
                         if name == audio_device.name {
                             let default_config = device
                                 .default_input_config()
@@ -141,7 +141,7 @@ pub async fn get_device_and_config(
                     // Use default host for all macOS output devices
                     // Core Audio backend uses direct cidre API for system capture, not cpal
                     for device in host.output_devices()? {
-                        if let Ok(name) = device.name() {
+                        if let Ok(name) = super::device_name(&device) {
                             if name == audio_device.name {
                                 let default_config = device
                                     .default_output_config()
@@ -157,7 +157,7 @@ pub async fn get_device_and_config(
                     // For Linux, we use PulseAudio monitor sources for system audio
                     if let Ok(pulse_host) = cpal::host_from_id(cpal::HostId::Alsa) {
                         for device in pulse_host.input_devices()? {
-                            if let Ok(name) = device.name() {
+                            if let Ok(name) = super::device_name(&device) {
                                 if name == audio_device.name {
                                     let default_config = device
                                         .default_input_config()

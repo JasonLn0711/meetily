@@ -36,7 +36,7 @@ pub async fn list_audio_devices() -> Result<Vec<AudioDevice>> {
         let mut devices = devices;
         if let Ok(other_devices) = host.devices() {
             for device in other_devices {
-                if let Ok(name) = device.name() {
+                if let Ok(name) = super::device_name(&device) {
                     if !devices.iter().any(|d| d.name == name) {
                         devices.push(AudioDevice::new(name, DeviceType::Output));
                     }
@@ -74,7 +74,7 @@ pub fn trigger_audio_permission() -> Result<bool> {
 
     // Build and start an input stream to trigger the permission request
     let stream = match device.build_input_stream(
-        &config.into(),
+        config.into(),
         |_data: &[f32], _: &cpal::InputCallbackInfo| {
             // Do nothing, we just want to trigger the permission request
         },

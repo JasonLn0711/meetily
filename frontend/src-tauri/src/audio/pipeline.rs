@@ -688,7 +688,7 @@ impl AudioCapture {
     }
 
     /// Handle stream errors with enhanced disconnect detection
-    pub fn handle_stream_error(&self, error: cpal::StreamError) {
+    pub fn handle_stream_error(&self, error: cpal::Error) {
         error!("Audio stream error for {}: {}", self.device.name, error);
 
         let error_str = error.to_string().to_lowercase();

@@ -23,18 +23,11 @@ pub enum StreamBackend {
     },
 }
 
-// SAFETY: While Stream doesn't implement Send, we ensure it's only accessed
-// from the same thread context by using spawn_blocking for operations that cross thread boundaries
-unsafe impl Send for StreamBackend {}
-
 /// Simplified audio stream wrapper with multi-backend support
 pub struct AudioStream {
     device: Arc<AudioDevice>,
     backend: StreamBackend,
 }
-
-// SAFETY: AudioStream contains StreamBackend which we've marked as Send
-unsafe impl Send for AudioStream {}
 
 impl AudioStream {
     /// Create a new audio stream for the given device
@@ -121,7 +114,7 @@ impl AudioStream {
 
         info!(
             "Audio config - Sample rate: {}, Channels: {}, Format: {:?}",
-            config.sample_rate().0,
+            config.sample_rate(),
             config.channels(),
             config.sample_format()
         );
@@ -130,7 +123,7 @@ impl AudioStream {
         let capture = AudioCapture::new(
             device.clone(),
             state.clone(),
-            config.sample_rate().0,
+            config.sample_rate(),
             config.channels(),
             device_type,
         );
@@ -193,7 +186,7 @@ impl AudioStream {
         // The stream needs to be polled continuously to produce samples
         let device_name = device.name.clone();
         info!("🔊 Stream: Spawning tokio task to poll Core Audio stream...");
-        let task = tokio::spawn({
+        let task = tokio::task::spawn_local({
             let capture = capture.clone();
             let mut stream = core_stream;
 
@@ -262,7 +255,7 @@ impl AudioStream {
             cpal::SampleFormat::F32 => {
                 let capture_clone = capture.clone();
                 device.build_input_stream(
-                    &config_copy.into(),
+                    config_copy.into(),
                     move |data: &[f32], _: &cpal::InputCallbackInfo| {
                         capture.process_audio_data(data);
                     },
@@ -275,7 +268,7 @@ impl AudioStream {
             cpal::SampleFormat::I16 => {
                 let capture_clone = capture.clone();
                 device.build_input_stream(
-                    &config_copy.into(),
+                    config_copy.into(),
                     move |data: &[i16], _: &cpal::InputCallbackInfo| {
                         let f32_data: Vec<f32> = data
                             .iter()
@@ -292,7 +285,7 @@ impl AudioStream {
             cpal::SampleFormat::I32 => {
                 let capture_clone = capture.clone();
                 device.build_input_stream(
-                    &config_copy.into(),
+                    config_copy.into(),
                     move |data: &[i32], _: &cpal::InputCallbackInfo| {
                         let f32_data: Vec<f32> = data
                             .iter()
@@ -309,7 +302,7 @@ impl AudioStream {
             cpal::SampleFormat::I8 => {
                 let capture_clone = capture.clone();
                 device.build_input_stream(
-                    &config_copy.into(),
+                    config_copy.into(),
                     move |data: &[i8], _: &cpal::InputCallbackInfo| {
                         let f32_data: Vec<f32> = data
                             .iter()
@@ -376,14 +369,11 @@ impl AudioStream {
 }
 
 /// Audio stream manager for handling multiple streams
-pub struct AudioStreamManager {
+pub(crate) struct AudioStreamManager {
     microphone_stream: Option<AudioStream>,
     system_stream: Option<AudioStream>,
     state: Arc<RecordingState>,
 }
-
-// SAFETY: AudioStreamManager contains AudioStream which we've marked as Send
-unsafe impl Send for AudioStreamManager {}
 
 impl AudioStreamManager {
     pub fn new(state: Arc<RecordingState>) -> Self {
@@ -504,10 +494,6 @@ impl AudioStreamManager {
         count
     }
 
-    /// Check if any streams are active
-    pub fn has_active_streams(&self) -> bool {
-        self.microphone_stream.is_some() || self.system_stream.is_some()
-    }
 }
 
 impl Drop for AudioStreamManager {

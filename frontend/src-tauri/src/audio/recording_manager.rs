@@ -14,37 +14,29 @@ use super::devices::{default_input_device, default_output_device};
 use super::pipeline::AudioPipelineManager;
 use super::recording_saver::RecordingSaver;
 use super::recording_state::{AudioChunk, DeviceType as RecordingDeviceType, RecordingState};
-use super::stream::AudioStreamManager;
-
-/// Stream manager type enumeration
-pub enum StreamManagerType {
-    Standard(AudioStreamManager),
-}
+use super::audio_runtime::AudioRuntime;
 
 /// Simplified recording manager that coordinates all audio components
 pub struct RecordingManager {
     state: Arc<RecordingState>,
-    stream_manager: AudioStreamManager,
+    audio_runtime: AudioRuntime,
     pipeline_manager: AudioPipelineManager,
     recording_saver: RecordingSaver,
     device_monitor: Option<AudioDeviceMonitor>,
     device_event_receiver: Option<mpsc::UnboundedReceiver<DeviceEvent>>,
 }
 
-// SAFETY: RecordingManager contains types that we've marked as Send
-unsafe impl Send for RecordingManager {}
-
 impl RecordingManager {
     /// Create a new recording manager
     pub fn new() -> Self {
         let state = RecordingState::new();
-        let stream_manager = AudioStreamManager::new(state.clone());
+        let audio_runtime = AudioRuntime::new();
         let pipeline_manager = AudioPipelineManager::new();
         let (device_monitor, device_event_receiver) = AudioDeviceMonitor::new();
 
         Self {
             state,
-            stream_manager,
+            audio_runtime,
             pipeline_manager,
             recording_saver: RecordingSaver::new(),
             device_monitor: Some(device_monitor),
@@ -132,8 +124,12 @@ impl RecordingManager {
 
         // Start audio streams - they send RAW unmixed chunks to pipeline for mixing
         // Pipeline handles mixing and distribution to both recording and transcription
-        self.stream_manager
-            .start_streams(microphone_device.clone(), system_device.clone())
+        self.audio_runtime
+            .start_streams(
+                self.state.clone(),
+                microphone_device.clone(),
+                system_device.clone(),
+            )
             .await?;
 
         // Start device monitoring to detect disconnects
@@ -148,7 +144,7 @@ impl RecordingManager {
 
         info!(
             "Recording manager started successfully with {} active streams",
-            self.stream_manager.active_stream_count()
+            self.audio_runtime.active_stream_count()
         );
 
         Ok(transcription_receiver)
@@ -258,7 +254,7 @@ impl RecordingManager {
         self.state.stop_recording();
 
         // Stop audio streams
-        if let Err(e) = self.stream_manager.stop_streams() {
+        if let Err(e) = self.audio_runtime.stop_streams().await {
             error!("Error stopping audio streams: {}", e);
         }
 
@@ -286,7 +282,7 @@ impl RecordingManager {
         self.state.stop_recording();
 
         // Stop audio streams immediately
-        if let Err(e) = self.stream_manager.stop_streams() {
+        if let Err(e) = self.audio_runtime.stop_streams().await {
             error!("Error stopping audio streams: {}", e);
         }
 
@@ -352,7 +348,7 @@ impl RecordingManager {
         self.state.stop_recording();
 
         // Stop audio streams
-        if let Err(e) = self.stream_manager.stop_streams() {
+        if let Err(e) = self.audio_runtime.stop_streams().await {
             error!("Error stopping audio streams: {}", e);
         }
 
@@ -447,7 +443,7 @@ impl RecordingManager {
 
     /// Get active stream count
     pub fn active_stream_count(&self) -> usize {
-        self.stream_manager.active_stream_count()
+        self.audio_runtime.active_stream_count()
     }
 
     /// Set error callback for handling errors
@@ -499,7 +495,7 @@ impl RecordingManager {
             self.state.stop_recording();
 
             // Stop audio streams
-            if let Err(e) = self.stream_manager.stop_streams() {
+            if let Err(e) = self.audio_runtime.stop_streams().await {
                 error!("Error stopping audio streams during cleanup: {}", e);
             }
 
@@ -560,11 +556,15 @@ impl RecordingManager {
                     let system_device = self.state.get_system_device();
 
                     // Restart streams with new microphone
-                    self.stream_manager.stop_streams()?;
+                    self.audio_runtime.stop_streams().await?;
                     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-                    self.stream_manager
-                        .start_streams(Some(device_arc.clone()), system_device)
+                    self.audio_runtime
+                        .start_streams(
+                            self.state.clone(),
+                            Some(device_arc.clone()),
+                            system_device,
+                        )
                         .await?;
                     self.state.set_microphone_device(device_arc);
 
@@ -576,11 +576,15 @@ impl RecordingManager {
                     let microphone_device = self.state.get_microphone_device();
 
                     // Restart streams with new system audio
-                    self.stream_manager.stop_streams()?;
+                    self.audio_runtime.stop_streams().await?;
                     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-                    self.stream_manager
-                        .start_streams(microphone_device, Some(device_arc.clone()))
+                    self.audio_runtime
+                        .start_streams(
+                            self.state.clone(),
+                            microphone_device,
+                            Some(device_arc.clone()),
+                        )
                         .await?;
                     self.state.set_system_device(device_arc);
 
