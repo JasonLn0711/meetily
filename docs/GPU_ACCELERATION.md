@@ -83,3 +83,5 @@ requires a real audio run on target hardware with:
 - visible error records for failed runs.
 
 This separates build readiness from hardware-backed runtime evidence.
+
+Complete implementation and live-evidence trail: [2026-07-14 Audio owner thread and GPU-only ASR audit](audit-events/2026-07-14-audio-owner-gpu-asr-hardening/audit-event.md).

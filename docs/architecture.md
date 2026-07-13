@@ -43,3 +43,4 @@ graph TD
 ## Engineering Notes
 
 *   [2026-07-08 Tauri / Next.js hydration and Breeze ASR 25 record](engineering-notes/2026-07-08-tauri-next-hydration-breeze-asr.md): documents a dev startup triage where SSR rendered but hydration was blocked by chunk loading/CSP risk, and records the Breeze ASR 25 CT2 vs whisper-rs GGML/GGUF compatibility boundary.
+*   [2026-07-14 Audio owner thread and GPU-only ASR audit](audit-events/2026-07-14-audio-owner-gpu-asr-hardening/audit-event.md): connects the native crash follow-up, CPAL owner-thread migration, model-language routing, GPU activation contract, live CUDA evidence, publication trail, and remaining soak-test gate.

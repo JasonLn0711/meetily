@@ -222,6 +222,8 @@ Automatic detection selects a supported backend and returns a clear activation
 action when the matching GPU toolchain is not ready. ASR never falls back to
 CPU inference.
 
+Audit trail: [Audio owner thread and GPU-only ASR hardening](docs/audit-events/2026-07-14-audio-owner-gpu-asr-hardening/audit-event.md).
+
 ## System Architecture
 
 Meetily is a single, self-contained application built with [Tauri](https://tauri.app/). It uses a Rust-based backend to handle all the core logic, and a Next.js frontend for the user interface.

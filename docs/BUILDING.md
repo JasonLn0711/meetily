@@ -106,3 +106,4 @@ architectures 7.5, 8.6, and 8.9 by default; set `CMAKE_CUDA_ARCHITECTURES` to an
 explicit deployment matrix when another target is required.
 
 See [GPU acceleration](GPU_ACCELERATION.md) for backend-specific checks.
+The [2026-07-14 hardening audit](audit-events/2026-07-14-audio-owner-gpu-asr-hardening/audit-event.md) records the implementation commits, release-link correction, targeted tests, live CUDA run, and next hardware gates.
