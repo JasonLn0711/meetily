@@ -131,7 +131,7 @@ impl WhisperEngine {
             let current_dir = std::env::current_dir()
                 .map_err(|e| anyhow!("Failed to get current directory: {}", e))?;
 
-            // Development: Use frontend/models or backend directories
+            // Development: use the nearest project models directory.
             // Production: Use system directories (should be overridden by caller)
             if cfg!(debug_assertions) {
                 // Development mode - try frontend and backend directories
@@ -139,16 +139,6 @@ impl WhisperEngine {
                     current_dir.join("models")
                 } else if current_dir.join("../models").exists() {
                     current_dir.join("../models")
-                } else if current_dir
-                    .join("backend/whisper-server-package/models")
-                    .exists()
-                {
-                    current_dir.join("backend/whisper-server-package/models")
-                } else if current_dir
-                    .join("../backend/whisper-server-package/models")
-                    .exists()
-                {
-                    current_dir.join("../backend/whisper-server-package/models")
                 } else {
                     // Create models directory in current directory for development
                     current_dir.join("models")

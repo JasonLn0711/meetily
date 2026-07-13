@@ -8,6 +8,14 @@ use log::{debug, info, warn, error};
 
 use super::devices::{AudioDevice, list_audio_devices};
 
+fn monitor_check_interval(has_missing_device: bool) -> Duration {
+    if has_missing_device {
+        Duration::from_secs(2)
+    } else {
+        Duration::from_secs(5)
+    }
+}
+
 /// Device monitoring events
 #[derive(Debug, Clone)]
 pub enum DeviceEvent {
@@ -166,7 +174,7 @@ impl AudioDeviceMonitor {
         stop_signal: Arc<tokio::sync::Notify>,
     ) {
         let mut last_device_list = Vec::new();
-        let check_interval = Duration::from_secs(2); // Poll every 2 seconds
+        let mut check_interval = monitor_check_interval(false);
 
         loop {
             // Check for stop signal with timeout
@@ -239,14 +247,11 @@ impl AudioDeviceMonitor {
             // Adjust check interval based on device states
             // If any device is missing, check more frequently
             let has_missing = monitored_devices.iter().any(|d| d.consecutive_missing > 0);
-            let next_interval = if has_missing {
-                Duration::from_secs(2) // Fast polling when device missing
-            } else {
-                Duration::from_secs(5) // Slower polling when all devices present
-            };
+            let next_interval = monitor_check_interval(has_missing);
 
             if next_interval != check_interval {
                 debug!("Adjusting monitor interval to {:?}", next_interval);
+                check_interval = next_interval;
             }
         }
     }
@@ -284,6 +289,12 @@ mod tests {
         );
         assert!(!builtin.is_bluetooth);
         assert_eq!(builtin.disconnect_threshold(), 2);
+    }
+
+    #[test]
+    fn monitor_polling_slows_when_devices_are_stable() {
+        assert_eq!(monitor_check_interval(false), Duration::from_secs(5));
+        assert_eq!(monitor_check_interval(true), Duration::from_secs(2));
     }
 
     #[tokio::test]
