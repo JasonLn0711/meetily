@@ -129,7 +129,7 @@ pnpm run tauri:build
 
 ## Local Transcription
 
-Current Meetily does not require a separate FastAPI service, Docker backend, or manually started whisper-server process. Local transcription is handled by the Rust/Tauri desktop app.
+Current Meetily runs as one supported Tauri application. The Rust core owns local transcription, persistence, and summary orchestration through Tauri commands and events.
 
 For build and acceleration details, see:
 
