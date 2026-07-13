@@ -144,7 +144,7 @@ jobs:
         if: github.event.inputs.ubuntu-version == 'ubuntu-24.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev \
+          sudo apt-get install -y libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libx11-dev libxtst-dev libxrandr-dev \
             libwebkit2gtk-4.1-0=2.44.0-2 \
             libwebkit2gtk-4.1-dev=2.44.0-2 \
             libjavascriptcoregtk-4.1-0=2.44.0-2 \
@@ -156,7 +156,7 @@ jobs:
         if: github.event.inputs.ubuntu-version == 'ubuntu-22.04' || github.event.inputs.ubuntu-version == ''
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libx11-dev libxtst-dev libxrandr-dev
 
       - name: Prepare Vulkan SDK (Ubuntu 24.04)
         if: github.event.inputs.ubuntu-version == 'ubuntu-24.04'
@@ -212,7 +212,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         with:
           projectPath: frontend
-          args: --target x86_64-unknown-linux-gnu --features openblas ${{ steps.build-profile.outputs.args }}
+          args: --target x86_64-unknown-linux-gnu --features vulkan ${{ steps.build-profile.outputs.args }}
 
       - name: Verify build artifacts
         run: |

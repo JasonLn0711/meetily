@@ -104,7 +104,7 @@ jobs:
         if: matrix.platform == 'ubuntu-24.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev \
+          sudo apt-get install -y libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libx11-dev libxtst-dev libxrandr-dev \
             libwebkit2gtk-4.1-0=2.44.0-2 \
             libwebkit2gtk-4.1-dev=2.44.0-2 \
             libjavascriptcoregtk-4.1-0=2.44.0-2 \
@@ -117,7 +117,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev fuse libfuse2
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libpipewire-0.3-dev libpulse-dev libx11-dev libxtst-dev libxrandr-dev fuse libfuse2
 
       - name: Prepare Vulkan SDK (Ubuntu 24.04)
         if: matrix.platform == 'ubuntu-24.04'
@@ -323,10 +323,10 @@ jobs:
             echo "Windows build with Vulkan GPU acceleration"
           fi
 
-          # Linux: Use OpenBLAS for optimized CPU performance
+          # Linux: Use Vulkan for GPU-only ASR
           if [[ "${{ matrix.platform }}" == *"ubuntu"* ]]; then
-            FEATURES="--features openblas"
-            echo "Linux build with OpenBLAS CPU optimization"
+            FEATURES="--features vulkan"
+            echo "Linux build with Vulkan GPU acceleration"
           fi
 
           # macOS: Uses Metal by default, no additional features needed
@@ -350,7 +350,7 @@ jobs:
             LLAMA_FEATURES="--features vulkan"
             echo "Using Vulkan GPU acceleration for Windows"
           else
-            echo "Using CPU-only mode for Linux"
+            echo "Using Vulkan GPU mode for Linux ASR"
           fi
 
           # Build llama-helper from workspace root
