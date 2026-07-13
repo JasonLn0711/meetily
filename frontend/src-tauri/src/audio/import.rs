@@ -318,6 +318,13 @@ async fn run_import<R: Runtime>(
 
     // Determine which provider to use (default to whisper)
     let use_parakeet = provider.as_deref() == Some("parakeet");
+    if use_parakeet {
+        crate::parakeet_engine::capabilities::validate_language(
+            model.as_deref().unwrap_or(DEFAULT_PARAKEET_MODEL),
+            language.as_deref(),
+        )
+        .map_err(anyhow::Error::msg)?;
+    }
 
     emit_progress(&app, "copying", 5, "Creating meeting folder...");
 

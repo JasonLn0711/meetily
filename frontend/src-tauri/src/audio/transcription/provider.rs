@@ -28,9 +28,7 @@ impl std::fmt::Display for TranscriptionError {
                 samples, minimum
             ),
             Self::EngineFailed(msg) => write!(f, "Transcription engine failed: {}", msg),
-            Self::UnsupportedLanguage(lang) => {
-                write!(f, "Language '{}' is not supported by this provider", lang)
-            }
+            Self::UnsupportedLanguage(message) => write!(f, "{}", message),
         }
     }
 }

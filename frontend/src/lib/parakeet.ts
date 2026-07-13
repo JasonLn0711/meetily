@@ -41,20 +41,20 @@ export const MODEL_DISPLAY_CONFIG: Record<string, ModelDisplayInfo> = {
   'parakeet-tdt-0.6b-v3-int8': {
     friendlyName: 'Lightning',
     icon: '⚡',
-    tagline: 'Real time • Best for speed, great accuracy',
+    tagline: 'Real time • 25 European languages',
     recommended: true,
     tier: 'fastest'
   },
   'parakeet-tdt-0.6b-v2-int8': {
     friendlyName: 'Compact',
     icon: '📦',
-    tagline: 'Real time • Smaller size',
+    tagline: 'Real time • English only • Smaller size',
     tier: 'balanced'
   },
   'parakeet-tdt-0.6b-v3-fp32': {
     friendlyName: 'Precise',
     icon: '🎯',
-    tagline: '20x real-time • Higher accuracy',
+    tagline: '20x real-time • 25 European languages',
     tier: 'precise'
   }
 };
@@ -64,21 +64,21 @@ export const MODEL_DISPLAY_CONFIG: Record<string, ModelDisplayInfo> = {
 // Source: https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx
 export const PARAKEET_MODEL_CONFIGS: Record<string, Partial<ParakeetModelInfo>> = {
   'parakeet-tdt-0.6b-v3-int8': {
-    description: 'Real time on M4 Max, optimized for speed',
+    description: 'Real time on M4 Max; 25 European languages',
     size_mb: 670, // Actual download: 652MB encoder + 18.2MB decoder + 0.2MB extras
     accuracy: 'High',
     speed: 'Ultra Fast',
     quantization: 'Int8'
   },
   'parakeet-tdt-0.6b-v2-int8': {
-    description: '25x real-time, smaller size with good accuracy',
+    description: '25x real-time; English transcription',
     size_mb: 661, // Actual download: 652MB encoder + 9MB decoder + 0.15MB extras
     accuracy: 'High',
     speed: 'Very Fast',
     quantization: 'Int8'
   },
   'parakeet-tdt-0.6b-v3-fp32': {
-    description: '20x real-time on M4 Max, higher precision',
+    description: '20x real-time on M4 Max; 25 European languages',
     size_mb: 2554, // Actual download: 2.44GB + 41.8MB encoder + 72.5MB decoder + 0.2MB extras
     accuracy: 'High',
     speed: 'Fast',

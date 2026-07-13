@@ -113,6 +113,10 @@ pub async fn validate_transcription_model_ready<R: Runtime>(app: &AppHandle<R>) 
         }
         "parakeet" => {
             info!("🔍 Validating Parakeet model...");
+            crate::parakeet_engine::capabilities::validate_language(
+                &config.model,
+                crate::get_language_preference_internal().as_deref(),
+            )?;
             // Ensure parakeet engine is initialized first
             if let Err(init_error) = crate::parakeet_engine::commands::parakeet_init().await {
                 warn!("❌ Failed to initialize Parakeet engine: {}", init_error);

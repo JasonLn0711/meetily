@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Globe } from 'lucide-react';
 import Analytics from '@/lib/analytics';
 import { toast } from 'sonner';
@@ -130,10 +130,10 @@ export function LanguageSelection({
   const [saving, setSaving] = useState(false);
   const { setSelectedLanguage } = useConfig();
 
-  // Parakeet only supports auto-detection (doesn't support manual language selection)
+  // Parakeet v3 auto-detects within its official 25-language European scope.
   const isParakeet = provider === 'parakeet';
   const availableLanguages = isParakeet
-    ? LANGUAGES.filter(lang => lang.code === 'auto' || lang.code === 'auto-translate')
+    ? LANGUAGES.filter(lang => lang.code === 'auto')
     : LANGUAGES;
 
   const handleLanguageChange = async (languageCode: string) => {
@@ -197,11 +197,11 @@ export function LanguageSelection({
           ))}
         </select>
 
-        {/* Parakeet language limitation warning */}
+        {/* Parakeet capability contract */}
         {isParakeet && (
-          <div className="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800">
+          <div className="p-2 bg-blue-50 border border-blue-200 rounded text-blue-800">
             <p className="font-medium">ℹ️ Parakeet Language Support</p>
-            <p className="mt-1 text-xs">Parakeet currently only supports automatic language detection. Manual language selection is not available. Use Whisper if you need to specify a particular language.</p>
+            <p className="mt-1 text-xs">Parakeet v3 automatically transcribes 25 European languages in their source language. Local Whisper is the active path for Chinese, other languages, and English translation.</p>
           </div>
         )}
 

@@ -182,6 +182,13 @@ async fn run_retranscription<R: Runtime>(
 
     // Determine which provider to use (default to whisper)
     let use_parakeet = provider.as_deref() == Some("parakeet");
+    if use_parakeet {
+        crate::parakeet_engine::capabilities::validate_language(
+            model.as_deref().unwrap_or(DEFAULT_PARAKEET_MODEL),
+            language.as_deref(),
+        )
+        .map_err(anyhow::Error::msg)?;
+    }
 
     info!(
         "Starting retranscription for meeting {} with language {:?}, model {:?}, provider {:?}",

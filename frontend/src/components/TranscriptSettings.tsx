@@ -121,8 +121,8 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                     <SelectValue placeholder="Select provider" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="parakeet">⚡ Parakeet (Recommended - Real-time / Accurate)</SelectItem>
-                                    <SelectItem value="localWhisper">🏠 Local Whisper (High Accuracy)</SelectItem>
+                                    <SelectItem value="localWhisper">🏠 Local Whisper / Breeze (Taiwan Mandarin + Multilingual)</SelectItem>
+                                    <SelectItem value="parakeet">⚡ Parakeet (Fast - 25 European Languages)</SelectItem>
                                     {/* <SelectItem value="deepgram">☁️ Deepgram (Backup)</SelectItem>
                                     <SelectItem value="elevenLabs">☁️ ElevenLabs</SelectItem>
                                     <SelectItem value="groq">☁️ Groq</SelectItem>
@@ -224,7 +224,6 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
         </div >
     )
 }
-
 
 
 
