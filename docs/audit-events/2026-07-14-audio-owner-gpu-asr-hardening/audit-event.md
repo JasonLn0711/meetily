@@ -231,6 +231,7 @@ Canonical live evidence：[`project_aura/artifacts/asr-benchmark/2026-07-13-comm
 | [`docs/architecture.md`](../../architecture.md) | 產品 component ownership 與 engineering note 入口。 |
 | [`docs/GPU_ACCELERATION.md`](../../GPU_ACCELERATION.md) | GPU backend activation、readiness 與 evidence gate。 |
 | [`docs/BUILDING.md`](../../BUILDING.md) | release toolchain、runtime contract、validation command 與 CUDA PIC controls。 |
+| [`2026-07-14 Linux PipeWire build activation gate`](../2026-07-14-linux-pipewire-build-activation-gate/audit-event.md) | forward event：Linux workflows 已具備 PipeWire dependencies；目前 workstation 仍需完成 package activation 才能重跑 Tauri。 |
 | [`audio_runtime.rs`](../../../frontend/src-tauri/src/audio/audio_runtime.rs) | CPAL owner-thread canonical implementation。 |
 | [`acceleration.rs`](../../../frontend/src-tauri/src/whisper_engine/acceleration.rs) | Whisper GPU invariant canonical implementation。 |
 | [`parakeet model.rs`](../../../frontend/src-tauri/src/parakeet_engine/model.rs) | Parakeet CUDA-only session canonical implementation。 |

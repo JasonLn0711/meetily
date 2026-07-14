@@ -310,6 +310,7 @@ After adopting Breeze ASR 26, the local model cache is about 6.1 GB and includes
 
 ## Connection Map
 
+- [`2026-07-14 Linux PipeWire build activation gate`](../audit-events/2026-07-14-linux-pipewire-build-activation-gate/audit-event.md): current-host follow-up；CUDA detection 與 Next.js ready 後，Rust build 在 `libpipewire-0.3-dev` activation gate 停止。這份本機 prerequisite evidence 與本節保存的前次 successful startup evidence 共同建立啟動狀態時間線。
 - `docs/architecture.md`: Meetily 的 Tauri / Next.js / Rust core 架構入口；本紀錄補充「SSR、hydration、Tauri command」在實務除錯中的關係。
 - `docs/BUILDING.md`: build 與 GPU 自動偵測入口；本紀錄補充 dev mode 首次編譯、cache、模型下載成本。
 - `docs/GPU_ACCELERATION.md`: whisper-rs GPU backend 說明；本紀錄補充模型格式 gate，不把 CT2 model 當 whisper-rs model。

@@ -1,0 +1,122 @@
+meetily on  main [⇡] via 🦀 v1.95.0
+❯   cd frontend
+  pnpm run tauri:dev
+✓ Lockfile passes supply-chain policies (verified 10h ago)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+Done in 534ms using pnpm v11.11.0
+$ node scripts/tauri-auto.js dev
+🟢 NVIDIA GPU detected with CUDA - using CUDA acceleration
+
+🐧 Linux/CUDA detected: Setting CMAKE flags for NVIDIA GPU
+🚀 Running: tauri dev with GPU feature: cuda
+
+     Running BeforeDevCommand (`pnpm dev`)
+$ next dev -p 3118
+   ▲ Next.js 15.5.20
+   - Local:        http://localhost:3118
+   - Network:      http://192.168.68.109:3118
+
+ ✓ Starting...
+     Running DevCommand (`cargo  run --features cuda --no-default-features --features platform-default --color always --`)
+ ✓ Ready in 1469ms
+        Info Watching /home/jnclaw/every_on_git_jnclaw/meetily/frontend/src-tauri for changes...
+   Compiling openssl-sys v0.9.115
+   Compiling glib-sys v0.18.1
+   Compiling gobject-sys v0.18.0
+   Compiling gio-sys v0.18.1
+   Compiling gdk-sys v0.18.2
+   Compiling atk-sys v0.18.2
+   Compiling gdk-pixbuf-sys v0.18.0
+   Compiling pango-sys v0.18.0
+   Compiling cairo-sys-rs v0.18.2
+   Compiling javascriptcore-rs-sys v1.1.1
+   Compiling soup3-sys v0.5.0
+   Compiling libdbus-sys v0.2.7
+   Compiling x11-dl v2.21.0
+   Compiling gtk-sys v0.18.2
+   Compiling openssl v0.10.79
+   Compiling native-tls v0.2.18
+   Compiling gdkx11-sys v0.18.2
+   Compiling itertools v0.13.0
+   Compiling lzma-sys v0.1.20
+   Compiling h2 v0.3.27
+   Compiling bzip2-sys v0.1.13+1.0.8
+   Compiling bindgen v0.69.5
+   Compiling gtk v0.18.2
+   Compiling webkit2gtk-sys v2.0.2
+   Compiling sqlx-core v0.8.6
+   Compiling alsa-sys v0.4.0
+   Compiling hyper-util v0.1.20
+   Compiling rfd v0.16.0
+   Compiling dbus v0.9.11
+   Compiling wry v0.55.1
+   Compiling xz2 v0.1.7
+   Compiling ffmpeg-sidecar v2.5.0 (https://github.com/nathanbabcock/ffmpeg-sidecar?branch=main#b0f48a51)
+   Compiling alsa v0.11.0
+   Compiling bzip2 v0.5.2
+   Compiling zip v2.4.2
+   Compiling bindgen v0.72.1
+   Compiling glib v0.18.5
+   Compiling hyper-rustls v0.27.9
+   Compiling gdkwayland-sys v0.18.2
+   Compiling reqwest v0.13.3
+   Compiling sqlx-sqlite v0.8.6
+   Compiling libappindicator-sys v0.9.0
+   Compiling ureq v3.3.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling ort-sys v2.0.0-rc.10
+   Compiling hyper v0.14.32
+   Compiling whisper-rs-sys v0.11.1
+   Compiling ort v2.0.0-rc.10
+   Compiling sqlx-macros-core v0.8.6
+   Compiling libspa-sys v0.10.0
+   Compiling pipewire-sys v0.10.0
+error: failed to run custom build command for `libspa-sys v0.10.0`
+
+Caused by:
+  process didn't exit successfully: `/home/jnclaw/every_on_git_jnclaw/meetily/target/debug/build/libspa-sys-4d66d7b777cd26d7/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-changed=/home/jnclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libspa-sys-0.10.0/Cargo.toml
+  cargo:rerun-if-env-changed=LIBPIPEWIRE_0.3_NO_PKG_CONFIG
+  cargo:rerun-if-env-changed=PKG_CONFIG_x86_64-unknown-linux-gnu
+  cargo:rerun-if-env-changed=PKG_CONFIG_x86_64_unknown_linux_gnu
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG
+  cargo:rerun-if-env-changed=PKG_CONFIG
+  cargo:rerun-if-env-changed=PKG_CONFIG_PATH_x86_64-unknown-linux-gnu
+  cargo:rerun-if-env-changed=PKG_CONFIG_PATH_x86_64_unknown_linux_gnu
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG_PATH
+  cargo:rerun-if-env-changed=PKG_CONFIG_PATH
+  cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR_x86_64-unknown-linux-gnu
+  cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR_x86_64_unknown_linux_gnu
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG_LIBDIR
+  cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR
+  cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR_x86_64-unknown-linux-gnu
+  cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR_x86_64_unknown_linux_gnu
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG_SYSROOT_DIR
+  cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR
+
+  --- stderr
+
+  thread 'main' (618192) panicked at /home/jnclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libspa-sys-0.10.0/build.rs:10:10:
+  Cannot find libraries: PkgConfig(
+  pkg-config exited with status code 1
+  > PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --libs --cflags libpipewire-0.3 'libpipewire-0.3 >= 0.3'
+
+  pkg-config output:
+    Package libpipewire-0.3 was not found in the pkg-config search path.
+    Perhaps you should add the directory containing `libpipewire-0.3.pc'
+    to the PKG_CONFIG_PATH environment variable
+    Package 'libpipewire-0.3', required by 'virtual:world', not found
+    Package 'libpipewire-0.3', required by 'virtual:world', not found
+
+  The system library `libpipewire-0.3` required by crate `libspa-sys` was not found.
+  The file `libpipewire-0.3.pc` needs to be installed and the PKG_CONFIG_PATH environment variable must contain its parent directory.
+  The PKG_CONFIG_PATH environment variable is not set.
+
+  HINT: if you have installed the library, try setting PKG_CONFIG_PATH to the directory containing `libpipewire-0.3.pc`.
+  )
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+warning: build failed, waiting for other jobs to finish...
+[ELIFECYCLE] Command failed.
+[ELIFECYCLE] Command failed with exit code 101.

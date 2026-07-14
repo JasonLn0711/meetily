@@ -63,6 +63,16 @@ audio packages available:
 sudo apt install libasound2-dev libpipewire-0.3-dev libpulse-dev
 ```
 
+Confirm that PipeWire metadata is visible before the first local build:
+
+```bash
+pkg-config --modversion libpipewire-0.3
+```
+
+If this check reports that `libpipewire-0.3` is missing, activate the development
+package before rerunning Tauri. The complete failure evidence and recovery gate
+are recorded in the [2026-07-14 Linux PipeWire build audit](audit-events/2026-07-14-linux-pipewire-build-activation-gate/audit-event.md).
+
 For Vulkan builds, install the LunarG Vulkan SDK and set `VULKAN_SDK`. For CUDA
 builds, install the CUDA Toolkit so `nvcc` or `CUDA_HOME` is available. For HIP
 builds, install ROCm so `hipcc` or `ROCM_PATH` is available.
