@@ -73,6 +73,10 @@ If this check reports that `libpipewire-0.3` is missing, activate the developmen
 package before rerunning Tauri. The complete failure evidence and recovery gate
 are recorded in the [2026-07-14 Linux PipeWire build audit](audit-events/2026-07-14-linux-pipewire-build-activation-gate/audit-event.md).
 
+All supported `pnpm run tauri:dev*` and `pnpm run tauri:build*` scripts perform
+this Linux audio preflight before starting Cargo and return the exact Ubuntu
+packages that need activation.
+
 For Vulkan builds, install the LunarG Vulkan SDK and set `VULKAN_SDK`. For CUDA
 builds, install the CUDA Toolkit so `nvcc` or `CUDA_HOME` is available. For HIP
 builds, install ROCm so `hipcc` or `ROCM_PATH` is available.

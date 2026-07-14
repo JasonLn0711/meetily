@@ -5,8 +5,9 @@
 - Event ID：`AUDIT-2026-07-14-MEETILY-LINUX-PIPEWIRE-BUILD-003`
 - 事件日期：`2026-07-14`（Asia/Taipei；原始 terminal log 未提供 wall-clock timestamp）
 - Audit record time：`2026-07-14 07:59:32 CST`
+- Implementation update：`2026-07-14 08:08:58 CST`
 - 事件類型：Linux local-development prerequisite activation gate
-- 目前狀態：`source preserved`、`analysis validated`、`remediation pending`
+- 目前狀態：`source preserved`、`analysis validated`、`preflight implementation validated`、`workstation package activation pending`
 - Canonical home：Meetily execution repo
 - Related hardening event：[`AUDIT-2026-07-14-MEETILY-AUDIO-GPU-HARDENING-002`](../2026-07-14-audio-owner-gpu-asr-hardening/audit-event.md)
 
@@ -103,6 +104,39 @@ pnpm run tauri:dev
 
 目前 `libasound2-dev` 已安裝，remediation 集中於 PipeWire 與 PulseAudio packages。當 package 安裝在非標準 prefix 時，以實際 `libpipewire-0.3.pc` parent directory 設定 `PKG_CONFIG_PATH`；本機診斷對應的啟動路徑是安裝 development package。
 
+## Fail-fast implementation
+
+[`frontend/scripts/tauri-auto.js`](../../../frontend/scripts/tauri-auto.js) 現在於 Cargo 啟動前以 `pkg-config` 檢查 `alsa`、`libpipewire-0.3` 與 `libpulse`。檢查會將缺少的 metadata 映射為 Ubuntu/Debian development package，並回報可直接執行的 `sudo apt install ...` activation command。
+
+[`frontend/package.json`](../../../frontend/package.json) 已將自動偵測與顯式 CUDA、Vulkan、Metal、CoreML、HIP dev/build scripts 全部路由至同一 wrapper。這個共用 preflight 保護 supported Tauri entry points，並保留 `TAURI_GPU_FEATURE` environment override。
+
+Validation：
+
+```text
+pnpm test: 11 passed, 0 failed
+tauri-auto prerequisite tests: 2 passed, 0 failed
+targeted ESLint: passed
+missing-host check: exit 1 with libpipewire-0.3-dev and libpulse-dev activation command
+```
+
+Regression check 保存在 [`frontend/tests/lib/tauri-auto.test.mjs`](../../../frontend/tests/lib/tauri-auto.test.mjs)，涵蓋 all-ready 與 two-package activation 兩條路徑。
+
+Commit evidence：
+
+- `83b4b52` — preserve source log, audit interpretation, index, and documentation connections.
+- `bfe643b` — route supported Tauri scripts through the shared Linux audio prerequisite preflight and add regression checks.
+
+## Workstation activation record
+
+`2026-07-14` 的 package installation 已進入系統授權 gate：
+
+```text
+command: sudo apt-get install -y libpipewire-0.3-dev libpulse-dev
+result: sudo requires interactive terminal authentication
+```
+
+Desktop PolicyKit 路徑可開啟系統認證；本輪在認證尚未完成時受控停止，不接觸或保存使用者密碼。主機 activation 的最短路徑是由 workstation owner 在自己的 terminal 執行上述指令；之後的 `pnpm run tauri:dev` 將由新 preflight 先確認 prerequisites，再進入 CUDA/Tauri build。
+
 ## Connection map
 
 | 入口 | 連結目的 |
@@ -112,6 +146,8 @@ pnpm run tauri:dev
 | [`docs/BUILDING.md`](../../BUILDING.md) | Ubuntu/Debian prerequisites、run command 與本事件的 recovery/validation 入口。 |
 | [`docs/GPU_ACCELERATION.md`](../../GPU_ACCELERATION.md) | CUDA backend detection 與 hardware-backed inference evidence gate；本事件只到 build preflight。 |
 | [`.github/workflows/build-linux.yml`](../../../.github/workflows/build-linux.yml) | Supported Ubuntu build image 的 canonical package installation list。 |
+| [`frontend/scripts/tauri-auto.js`](../../../frontend/scripts/tauri-auto.js) | Linux audio prerequisite fail-fast implementation 與 shared GPU entry point。 |
+| [`frontend/tests/lib/tauri-auto.test.mjs`](../../../frontend/tests/lib/tauri-auto.test.mjs) | all-ready 與 missing-package regression evidence。 |
 | [`frontend/src-tauri/Cargo.toml`](../../../frontend/src-tauri/Cargo.toml) | `cpal` 的 Linux `pipewire` / `pulseaudio` feature declaration。 |
 | [`2026-07-08 Tauri startup engineering note`](../../engineering-notes/2026-07-08-tauri-next-hydration-breeze-asr.md) | 前次可啟動狀態與 startup pipeline；本事件是獨立的 current-host prerequisite gate。 |
 
@@ -119,6 +155,7 @@ pnpm run tauri:dev
 
 | ID | Question / action | Owner | Due / trigger | Evidence needed |
 |---|---|---|---|---|
+| `BUILD-DONE-001` | Supported Tauri scripts 共用 Linux audio fail-fast preflight | Meetily build owner | completed 2026-07-14 | `11` Node tests、targeted ESLint、actionable missing-host output |
 | `BUILD-NEXT-001` | 安裝 `libpipewire-0.3-dev` 與 `libpulse-dev` | Meetily workstation owner | 下一次 local dev run 前 | `dpkg-query` status、`pkg-config --modversion libpipewire-0.3` |
 | `BUILD-NEXT-002` | 重跑 `pnpm run tauri:dev` | Meetily workstation owner | packages activated 後 | exit status、Tauri process/window ready markers、完整 failure log（若仍失敗） |
 | `BUILD-NEXT-003` | 驗證 audio/runtime path | Meetily runtime owner | desktop app ready 後 | device enumeration、controlled start/stop、runtime log |
@@ -126,6 +163,6 @@ pnpm run tauri:dev
 ## Scope controls
 
 - 本 audit 完成原始來源保存、direct-cause validation、canonical remediation adoption 與相關文件連結。
-- 本次執行範圍是 system diagnostics 與 durable documentation；package activation、application code 與 desktop runtime 保持為后續獨立工作層。
+- 本次執行範圍已完成 system diagnostics、durable documentation 與 fail-fast application code；package activation 與 desktop runtime 保持為后續獨立驗證層。
 - CUDA auto-detection success 是 build configuration evidence；真實 ASR inference 仍沿用 GPU audit 的 live-evidence contract。
 - CI/workflow dependency declaration保持有效；本事件新增的是目前 workstation 的 activation status，不改寫已發布 implementation history。
