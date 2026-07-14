@@ -3,26 +3,51 @@
  * Auto-detect GPU and run Tauri with appropriate features
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { execSync, spawnSync } = require('child_process');
 const os = require('os');
 
+const LINUX_AUDIO_DEVELOPMENT_PACKAGES = [
+  ['alsa', 'libasound2-dev'],
+  ['libpipewire-0.3', 'libpipewire-0.3-dev'],
+  ['libpulse', 'libpulse-dev'],
+];
+
+function findMissingLinuxAudioPackages(
+  probe = (name) => spawnSync('pkg-config', ['--exists', name], { stdio: 'ignore' }).status === 0
+) {
+  return LINUX_AUDIO_DEVELOPMENT_PACKAGES
+    .filter(([name]) => !probe(name))
+    .map(([, packageName]) => packageName);
+}
+
+function main() {
 // Get the command (dev or build)
 const command = process.argv[2];
 if (!command || !['dev', 'build'].includes(command)) {
-  console.error('Usage: node tauri-auto.js [dev|build]');
+  console.error('Usage: node tauri-auto.js [dev|build] [cuda|vulkan|hipblas|metal|coreml]');
   process.exit(1);
+}
+
+if (os.platform() === 'linux') {
+  const missingPackages = findMissingLinuxAudioPackages();
+  if (missingPackages.length > 0) {
+    console.error(`Meetily Linux audio build prerequisites need activation: ${missingPackages.join(', ')}`);
+    console.error(`Ubuntu/Debian: sudo apt install ${missingPackages.join(' ')}`);
+    console.error('Then rerun this command.');
+    process.exit(1);
+  }
+  console.log('✅ Linux audio development packages ready');
 }
 
 // Detect GPU feature
 let feature = '';
 const GPU_FEATURES = new Set(['cuda', 'vulkan', 'hipblas', 'metal', 'coreml']);
+const requestedFeature = process.argv[3] || process.env.TAURI_GPU_FEATURE;
 
 // Check for environment variable override first
-if (process.env.TAURI_GPU_FEATURE) {
-  feature = process.env.TAURI_GPU_FEATURE;
-  console.log(`🔧 Using forced GPU feature from environment: ${feature}`);
+if (requestedFeature) {
+  feature = requestedFeature;
+  console.log(`🔧 Using requested GPU feature: ${feature}`);
 } else {
   try {
     const result = execSync('node scripts/auto-detect-gpu.js', {
@@ -66,4 +91,11 @@ try {
   execSync(tauriCmd, { stdio: 'inherit', env });
 } catch (err) {
   process.exit(err.status || 1);
+}
+}
+
+module.exports = { findMissingLinuxAudioPackages };
+
+if (require.main === module) {
+  main();
 }
